@@ -51,9 +51,18 @@ local VERSION_URL = "https://raw.githubusercontent.com/Zorahm/repflow/main/versi
 local CURRENT_VERSION = "3.2 | Premium" -- Текущая версия скрипта
 local SCRIPT_PATH = getWorkingDirectory() .. "/RepFlow.lua" -- Путь к текущему скрипту
 
--- Функция перекодировки текста из UTF-8 в CP1251
+-- Функция перекодировки текста из UTF-8 в CP1251 с обработкой ошибок
 local function toCP1251(text)
-    return encoding.UTF8toCP1251(text)
+    if type(text) ~= "string" or text == "" then
+        return "[Ошибка кодировки]"
+    end
+    local success, result = pcall(encoding.UTF8toCP1251, text)
+    if success then
+        return result
+    else
+        logToFile("Ошибка перекодировки: " .. tostring(result))
+        return "[Ошибка кодировки]"
+    end
 end
 
 -- Функция проверки версии
@@ -69,7 +78,12 @@ function checkForUpdates()
         logToFile("Ошибка проверки обновлений: код " .. tostring(response.status_code) .. " для " .. VERSION_URL)
         return
     end
-    local remoteVersion = response.text:gsub("%s+", "")
+    local remoteVersion = response.text and response.text:gsub("%s+", "") or ""
+    if remoteVersion == "" then
+        sampAddChatMessage(toCP1251(CONFIG.tag .. "{FF0000}Ошибка: пустая версия на сервере!"), -1)
+        logToFile("Ошибка: version.txt пустой или недоступен")
+        return
+    end
     if remoteVersion ~= CURRENT_VERSION then
         sampAddChatMessage(toCP1251(CONFIG.tag .. "{FFFF00}Найдена новая версия: " .. remoteVersion .. ". Загрузка..."), -1)
         logToFile("Найдена новая версия: " .. remoteVersion)
@@ -93,13 +107,17 @@ function downloadUpdate()
         logToFile("Ошибка загрузки: код " .. tostring(response.status_code) .. " для " .. GITHUB_RAW_URL)
         return
     end
+    if not response.text or response.text == "" then
+        sampAddChatMessage(toCP1251(CONFIG.tag .. "{FF0000}Ошибка: файл скрипта пустой!"), -1)
+        logToFile("Ошибка: RepFlow.lua пустой или недоступен")
+        return
+    end
     local file = io.open(SCRIPT_PATH, "w")
     if not file then
         sampAddChatMessage(toCP1251(CONFIG.tag .. "{FF0000}Ошибка записи файла обновления!"), -1)
         logToFile("Ошибка: не удалось открыть файл " .. SCRIPT_PATH .. " для записи")
         return
     end
-    -- Преобразуем содержимое из UTF-8 в CP1251 перед записью
     local scriptContent = toCP1251(response.text)
     file:write(scriptContent)
     file:close()
