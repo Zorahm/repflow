@@ -7,11 +7,12 @@ local encoding = require 'encoding'
 local inicfg = require 'inicfg'
 local ffi = require 'ffi'
 local faicons = require 'fAwesome6'
+local requests = require 'requests'
 
 -- Конфигурация скрипта
 local CONFIG = {
     iniFilename = 'RepFlowCFG.ini',      -- Имя файла конфигурации
-    scriptVersion = "3.1 | Premium",     -- Версия скрипта
+    scriptVersion = "3.2 | Premium",     -- Версия скрипта
     defaultKeyBind = 0x5A,               -- Клавиша активации по умолчанию: Z
     defaultKeyBindName = 'Z',            -- Название клавиши по умолчанию
     afkCooldown = 30,                    -- Задержка перед ловлей после AFK (сек)
@@ -25,7 +26,16 @@ local new = imgui.new                    -- Сокращение для созд
 -- Данные ChangeLog
 local changelogEntries = {
     {
-        version = CONFIG.scriptVersion,
+        version = "3.2 | Premium",
+        description = [[
+            - Оптимизирована производительность (меньше wait).
+            - Добавлена статистика в инфо-окно.
+            - Улучшена защита от флуда с настройкой паузы.
+            - Добавлено логирование в файл.
+        ]]
+    },
+    {
+        version = "3.1 | Premium",
         description = [[
             - Новый стиль меню.
             - ChangeLog теперь разделён на две версии.
@@ -35,41 +45,108 @@ local changelogEntries = {
     },
 }
 
+-- Конфигурация обновления
+local GITHUB_RAW_URL = "https://raw.githubusercontent.com/Zorahm/repflow/main/!RepFlow.lua" -- Ссылка на основной файл
+local VERSION_URL = "https://raw.githubusercontent.com/Zorahm/repflow/main/version.txt" -- Ссылка на файл версии
+local CURRENT_VERSION = "3.2 | Premium" -- Текущая версия скрипта
+local SCRIPT_PATH = getWorkingDirectory() .. "/RepFlow.lua" -- Путь к текущему скрипту
+
+-- Функция перекодировки текста из UTF-8 в CP1251
+local function toCP1251(text)
+    return encoding.UTF8toCP1251(text)
+end
+
+-- Функция проверки версии
+function checkForUpdates()
+    local response = requests.get(VERSION_URL)
+    if not response then
+        sampAddChatMessage(toCP1251(CONFIG.tag .. "{FF0000}Ошибка проверки обновлений: нет ответа от сервера!"), -1)
+        logToFile("Ошибка проверки обновлений: requests.get() вернул nil для " .. VERSION_URL)
+        return
+    end
+    if response.status_code ~= 200 then
+        sampAddChatMessage(toCP1251(CONFIG.tag .. "{FF0000}Ошибка проверки обновлений: код " .. tostring(response.status_code)), -1)
+        logToFile("Ошибка проверки обновлений: код " .. tostring(response.status_code) .. " для " .. VERSION_URL)
+        return
+    end
+    local remoteVersion = response.text:gsub("%s+", "")
+    if remoteVersion ~= CURRENT_VERSION then
+        sampAddChatMessage(toCP1251(CONFIG.tag .. "{FFFF00}Найдена новая версия: " .. remoteVersion .. ". Загрузка..."), -1)
+        logToFile("Найдена новая версия: " .. remoteVersion)
+        downloadUpdate()
+    else
+        sampAddChatMessage(toCP1251(CONFIG.tag .. "{00FF00}У вас последняя версия: " .. CURRENT_VERSION), -1)
+        logToFile("Версия актуальна: " .. CURRENT_VERSION)
+    end
+end
+
+-- Функция загрузки обновления
+function downloadUpdate()
+    local response = requests.get(GITHUB_RAW_URL)
+    if not response then
+        sampAddChatMessage(toCP1251(CONFIG.tag .. "{FF0000}Ошибка загрузки обновления: нет ответа от сервера!"), -1)
+        logToFile("Ошибка загрузки: requests.get() вернул nil для " .. GITHUB_RAW_URL)
+        return
+    end
+    if response.status_code ~= 200 then
+        sampAddChatMessage(toCP1251(CONFIG.tag .. "{FF0000}Ошибка загрузки обновления: код " .. tostring(response.status_code)), -1)
+        logToFile("Ошибка загрузки: код " .. tostring(response.status_code) .. " для " .. GITHUB_RAW_URL)
+        return
+    end
+    local file = io.open(SCRIPT_PATH, "w")
+    if not file then
+        sampAddChatMessage(toCP1251(CONFIG.tag .. "{FF0000}Ошибка записи файла обновления!"), -1)
+        logToFile("Ошибка: не удалось открыть файл " .. SCRIPT_PATH .. " для записи")
+        return
+    end
+    -- Преобразуем содержимое из UTF-8 в CP1251 перед записью
+    local scriptContent = toCP1251(response.text)
+    file:write(scriptContent)
+    file:close()
+    sampAddChatMessage(toCP1251(CONFIG.tag .. "{00FF00}Скрипт обновлён! Перезагрузите MoonLoader."), -1)
+    logToFile("Скрипт обновлён до новой версии")
+    thisScript():reload()
+end
+
 -- Глобальные состояния
 local STATE = {
-    keyBind = CONFIG.defaultKeyBind,     -- Текущая клавиша активации
-    keyBindName = CONFIG.defaultKeyBindName, -- Название текущей клавиши
-    lastDialogId = nil,                  -- ID последнего открытого диалога
-    reportActive = false,                -- Статус активности репорта
-    lastOtTime = 0,                      -- Время последней отправки /ot (мс)
-    active = false,                      -- Статус автоловли
-    startTime = 0,                       -- Время старта автоловли (сек)
-    gameMinimized = false,               -- Флаг сворачивания игры
-    wasActiveBeforePause = false,        -- Статус ловли перед паузой
-    afkExitTime = 0,                     -- Время выхода из AFK (сек)
-    changingKey = false,                 -- Флаг смены клавиши
-    moveWidget = false,                  -- Флаг перемещения окна
-    reportAnsweredCount = 0,             -- Счетчик принятых репортов
-    lastDialogTime = os.clock(),         -- Время последнего диалога (сек)
-    manualDisable = false,               -- Флаг ручного отключения
+    keyBind = CONFIG.defaultKeyBind,
+    keyBindName = CONFIG.defaultKeyBindName,
+    lastDialogId = nil,
+    reportActive = false,
+    lastOtTime = 0,
+    active = false,
+    startTime = 0,
+    gameMinimized = false,
+    wasActiveBeforePause = false,
+    afkExitTime = 0,
+    changingKey = false,
+    moveWidget = false,
+    reportAnsweredCount = 0,
+    lastDialogTime = os.clock(),
+    manualDisable = false,
+    reportAttempts = 0, -- Новая статистика
+    floodCooldown = 0,  -- Время паузы после флуда
 }
 
 -- Настройки интерфейса и поведения
 local SETTINGS = {
-    otInterval = new.int(10),            -- Интервал отправки /ot
-    dialogTimeout = new.int(600),        -- Тайм-аут для автостарта (сек)
-    otIntervalBuffer = new.char[5](tostring(10)), -- Буфер для ввода интервала
-    dialogTimeoutBuffer = new.char[5](tostring(600)), -- Буфер для тайм-аута
-    useMilliseconds = new.bool(false),   -- Использовать миллисекунды
-    hideFloodMsg = new.bool(true),       -- Скрывать сообщения о флуде
-    autoStartEnabled = new.bool(true),   -- Автостарт ловли
-    dialogHandlerEnabled = new.bool(true), -- Обработка диалогов
-    infoWindowVisible = false,           -- Видимость информационного окна
-    cursorVisible = false,               -- Видимость курсора
-    mainWindowState = new.bool(false),   -- Состояние главного окна
-    infoWindowState = new.bool(false),   -- Состояние информационного окна
-    activeTab = new.int(0),              -- Активная вкладка
-    disableAutoStartOnToggle = false,    -- Отключение автостарта при ручном выключении
+    otInterval = new.int(10),
+    dialogTimeout = new.int(600),
+    floodPause = new.int(10), -- Пауза после флуда (сек)
+    otIntervalBuffer = new.char[5](tostring(10)),
+    dialogTimeoutBuffer = new.char[5](tostring(600)),
+    floodPauseBuffer = new.char[5](tostring(10)),
+    useMilliseconds = new.bool(false),
+    hideFloodMsg = new.bool(true),
+    autoStartEnabled = new.bool(true),
+    dialogHandlerEnabled = new.bool(true),
+    infoWindowVisible = false,
+    cursorVisible = false,
+    mainWindowState = new.bool(false),
+    infoWindowState = new.bool(false),
+    activeTab = new.int(0),
+    disableAutoStartOnToggle = false,
 }
 
 -- Разрешение экрана
@@ -86,15 +163,15 @@ local defaultConfig = {
         keyBindName = CONFIG.defaultKeyBindName,
         otInterval = 10,
         useMilliseconds = false,
-        themes = 1,
         dialogTimeout = 600,
+        floodPause = 10,
         dialogHandlerEnabled = true,
         autoStartEnabled = true,
         otklflud = false,
     },
     widget = {
-        posX = 400,                      -- Начальная позиция окна по X
-        posY = 400,                      -- Начальная позиция окна по Y
+        posX = 400,
+        posY = 400,
     }
 }
 
@@ -105,6 +182,7 @@ STATE.keyBindName = ini.main.keyBindName or CONFIG.defaultKeyBindName
 SETTINGS.otInterval[0] = tonumber(ini.main.otInterval) or 10
 SETTINGS.useMilliseconds[0] = ini.main.useMilliseconds or false
 SETTINGS.dialogTimeout[0] = tonumber(ini.main.dialogTimeout) or 600
+SETTINGS.floodPause[0] = tonumber(ini.main.floodPause) or 10
 SETTINGS.dialogHandlerEnabled[0] = ini.main.dialogHandlerEnabled or true
 SETTINGS.autoStartEnabled[0] = ini.main.autoStartEnabled or true
 SETTINGS.hideFloodMsg[0] = ini.main.otklflud or false
@@ -124,9 +202,15 @@ function main()
     sampRegisterChatCommand("arep", cmd_arep)
     sampAddChatMessage(CONFIG.tag .. 'Скрипт {00FF00}загружен.{FFFFFF} Активация меню: {00FF00}/arep', -1)
     show_arz_notify('success', 'RepFlow', 'Успешная загрузка. Активация: /arep', 9000)
+    logToFile("Скрипт загружен")
+
+    -- Проверка обновлений при запуске
+    sampAddChatMessage(CONFIG.tag .. "Проверка обновлений...", -1)
+    --checkForUpdates()
+    
 
     while true do
-        wait(50) -- Уменьшаем нагрузку на процессор
+        wait(100) -- Увеличиваем интервал для снижения нагрузки
         checkPauseAndDisableAutoStart()
         checkAutoStart()
         imgui.Process = SETTINGS.mainWindowState[0] and not STATE.gameMinimized
@@ -135,7 +219,7 @@ function main()
             local cursorX, cursorY = getCursorPos()
             ini.widget.posX = cursorX
             ini.widget.posY = cursorY
-            if isKeyJustPressed(0x20) then -- Пробел для фиксации
+            if isKeyJustPressed(0x20) then
                 STATE.moveWidget = false
                 sampToggleCursor(false)
                 saveWindowSettings()
@@ -153,11 +237,13 @@ function main()
             onToggleActive()
         end
 
-        if STATE.active then
+        if STATE.active and STATE.floodCooldown < os.clock() * 1000 then
             local currentTime = os.clock() * 1000
             local interval = SETTINGS.useMilliseconds[0] and SETTINGS.otInterval[0] or (SETTINGS.otInterval[0] * 1000)
             if currentTime - STATE.lastOtTime >= interval then
+                STATE.reportAttempts = STATE.reportAttempts + 1
                 sampSendChat('/ot')
+                logToFile("Отправка /ot, попытка #" .. STATE.reportAttempts)
                 STATE.lastOtTime = currentTime
             end
         else
@@ -247,7 +333,8 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
     if dialogId == 1334 and SETTINGS.dialogHandlerEnabled[0] then
         STATE.lastDialogTime = os.clock()
         STATE.reportAnsweredCount = STATE.reportAnsweredCount + 1
-        sampAddChatMessage(CONFIG.tag .. '{00FF00}Репорт принят! Отвечено репорта: ' .. STATE.reportAnsweredCount, -1)
+        logToFile("Репорт принят, всего: " .. STATE.reportAnsweredCount)
+        sampAddChatMessage(CONFIG.tag .. '{00FF00}Репорт принят! Отвечено: ' .. STATE.reportAnsweredCount, -1)
         if STATE.active then
             STATE.active = false
             show_arz_notify('info', 'RepFlow', 'Ловля отключена из-за окна репорта!', 3000)
@@ -298,27 +385,43 @@ function drawMainTab()
     imgui.Text(faicons('gear') .. u8" Настройки  /  " .. faicons('message') .. u8" Флудер")
     imgui.Separator()
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
-    if imgui.BeginChild("Flooder", imgui.ImVec2(0, 150), true) then
+    if imgui.BeginChild("Flooder", imgui.ImVec2(0, 200), true) then
         imgui.PushItemWidth(100)
         if imgui.Checkbox(u8'Использовать миллисекунды', SETTINGS.useMilliseconds) then
             ini.main.useMilliseconds = SETTINGS.useMilliseconds[0]
             inicfg.save(ini, CONFIG.iniFilename)
         end
         imgui.PopItemWidth()
-        imgui.Text(u8'Интервал отправки команды /ot (' .. (SETTINGS.useMilliseconds[0] and u8'в миллисекундах' or u8'в секундах') .. '):')
-        imgui.Text(u8'Текущий интервал: ' .. SETTINGS.otInterval[0] .. (SETTINGS.useMilliseconds[0] and u8' мс' or u8' секунд'))
+        imgui.Text(u8'Интервал отправки /ot (' .. (SETTINGS.useMilliseconds[0] and u8'мс' or u8'сек') .. '):')
+        imgui.Text(u8'Текущий: ' .. SETTINGS.otInterval[0])
         imgui.PushItemWidth(45)
         imgui.InputText(u8'##otIntervalInput', SETTINGS.otIntervalBuffer, ffi.sizeof(SETTINGS.otIntervalBuffer))
         imgui.SameLine()
-        if imgui.Button(faicons('floppy_disk') .. u8" Сохранить интервал") then
+        if imgui.Button(faicons('floppy_disk') .. u8" Сохранить") then
             local newValue = tonumber(ffi.string(SETTINGS.otIntervalBuffer))
             if newValue then
                 SETTINGS.otInterval[0] = newValue
                 ini.main.otInterval = newValue
                 inicfg.save(ini, CONFIG.iniFilename)
-                sampAddChatMessage(CONFIG.tagInfo .. "Интервал сохранён: {32CD32}" .. newValue .. (SETTINGS.useMilliseconds[0] and " мс" or " секунд"), -1)
+                sampAddChatMessage(CONFIG.tagInfo .. "Интервал сохранён: {32CD32}" .. newValue, -1)
             else
-                sampAddChatMessage(CONFIG.tagInfo .. "Некорректное значение. {32CD32}Введите число.", -1)
+                sampAddChatMessage(CONFIG.tagInfo .. "Ошибка: {32CD32}Введите число.", -1)
+            end
+        end
+        imgui.PopItemWidth()
+        imgui.Text(u8'Пауза после флуда (сек):')
+        imgui.Text(u8'Текущая: ' .. SETTINGS.floodPause[0])
+        imgui.PushItemWidth(45)
+        imgui.InputText(u8'##floodPauseInput', SETTINGS.floodPauseBuffer, ffi.sizeof(SETTINGS.floodPauseBuffer))
+        imgui.SameLine()
+        if imgui.Button(faicons('floppy_disk') .. u8" Сохранить паузу") then
+            local newValue = tonumber(ffi.string(SETTINGS.floodPauseBuffer))
+            if newValue and newValue >= 1 and newValue <= 60 then
+                SETTINGS.floodPause[0] = newValue
+                saveSettings()
+                sampAddChatMessage(CONFIG.tagInfo .. "Пауза сохранена: {32CD32}" .. newValue .. " сек", -1)
+            else
+                sampAddChatMessage(CONFIG.tagInfo .. "Ошибка: {32CD32}1-60 сек.", -1)
             end
         end
         imgui.PopItemWidth()
@@ -359,11 +462,11 @@ function drawSettingsTab()
             ini.main.dialogHandlerEnabled = SETTINGS.dialogHandlerEnabled[0]
             inicfg.save(ini, CONFIG.iniFilename)
         end
-        if imgui.Checkbox(u8'Автостарт ловли по большому активу', SETTINGS.autoStartEnabled) then
+        if imgui.Checkbox(u8'Автостарт ловли', SETTINGS.autoStartEnabled) then
             ini.main.autoStartEnabled = SETTINGS.autoStartEnabled[0]
             inicfg.save(ini, CONFIG.iniFilename)
         end
-        if imgui.Checkbox(u8'Отключить сообщение "Не флуди"', SETTINGS.hideFloodMsg) then
+        if imgui.Checkbox(u8'Скрыть "Не флуди"', SETTINGS.hideFloodMsg) then
             ini.main.otklflud = SETTINGS.hideFloodMsg[0]
             inicfg.save(ini, CONFIG.iniFilename)
         end
@@ -373,19 +476,19 @@ function drawSettingsTab()
 
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("AutoStartTimeout", imgui.ImVec2(0, 100), true) then
-        imgui.Text(u8'Настройка тайм-аута автостарта')
+        imgui.Text(u8'Тайм-аут автостарта (сек):')
+        imgui.Text(u8'Текущий: ' .. SETTINGS.dialogTimeout[0])
         imgui.PushItemWidth(45)
-        imgui.Text(u8'Текущий тайм-аут: ' .. SETTINGS.dialogTimeout[0] .. u8' секунд')
         imgui.InputText(u8'', SETTINGS.dialogTimeoutBuffer, ffi.sizeof(SETTINGS.dialogTimeoutBuffer))
         imgui.SameLine()
-        if imgui.Button(faicons('floppy_disk') .. u8" Сохранить тайм-аут") then
+        if imgui.Button(faicons('floppy_disk') .. u8" Сохранить") then
             local newValue = tonumber(ffi.string(SETTINGS.dialogTimeoutBuffer))
             if newValue and newValue >= 1 and newValue <= 9999 then
                 SETTINGS.dialogTimeout[0] = newValue
                 saveSettings()
-                sampAddChatMessage(CONFIG.tagInfo .. "Тайм-аут сохранён: {32CD32}" .. newValue .. " секунд", -1)
+                sampAddChatMessage(CONFIG.tagInfo .. "Тайм-аут сохранён: {32CD32}" .. newValue .. " сек", -1)
             else
-                sampAddChatMessage(CONFIG.tagInfo .. "Некорректное значение. {32CD32}Введите от 1 до 9999.", -1)
+                sampAddChatMessage(CONFIG.tagInfo .. "Ошибка: {32CD32}1-9999.", -1)
             end
         end
         imgui.PopItemWidth()
@@ -394,11 +497,16 @@ function drawSettingsTab()
     imgui.PopStyleColor()
 
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
-    if imgui.BeginChild("WindowPosition", imgui.ImVec2(0, 50), true) then
-        imgui.Text(u8'Положение окна информации:')
+    if imgui.BeginChild("WindowPosition", imgui.ImVec2(0, 80), true) then
+        imgui.Text(u8'Положение инфо-окна:')
         imgui.SameLine()
-        if imgui.Button(u8'Изменить положение') then
+        if imgui.Button(u8'Изменить') then
             startMovingWindow()
+        end
+        imgui.Text(u8'Обновление скрипта:')
+        imgui.SameLine()
+        if imgui.Button(u8'Проверить') then
+            checkForUpdates() -- Ручная проверка обновлений
         end
     end
     imgui.EndChild()
@@ -407,7 +515,12 @@ end
 
 -- Фильтрация сообщений о флуде
 function filterFloodMessage(text)
-    if SETTINGS.hideFloodMsg[0] and (text:find("%[Ошибка%] {FFFFFF}Сейчас нет вопросов в репорт!") or text:find("%[Ошибка%] {FFFFFF}Не флуди!")) then
+    if SETTINGS.hideFloodMsg[0] and text:find("%[Ошибка%] {FFFFFF}Не флуди!") then
+        STATE.floodCooldown = os.clock() * 1000 + (SETTINGS.floodPause[0] * 1000)
+        sampAddChatMessage(CONFIG.tag .. "Флуд, пауза на " .. SETTINGS.floodPause[0] .. " сек", -1)
+        logToFile("Флуд, пауза на " .. SETTINGS.floodPause[0] .. " сек")
+        return false
+    elseif SETTINGS.hideFloodMsg[0] and text:find("%[Ошибка%] {FFFFFF}Сейчас нет вопросов в репорт!") then
         return false
     end
 end
@@ -425,7 +538,8 @@ function checkPauseAndDisableAutoStart()
             STATE.gameMinimized = false
             STATE.afkExitTime = os.clock()
             if STATE.wasActiveBeforePause then
-                sampAddChatMessage(CONFIG.tag .. '{FFFFFF}Вы вышли из паузы. Ловля отключена из-за AFK!!', -1)
+                sampAddChatMessage(CONFIG.tag .. '{FFFFFF}Вы вышли из паузы. Ловля отключена из-за AFK!', -1)
+                logToFile("Выход из паузы, ловля отключена")
             end
         end
     end
@@ -464,6 +578,14 @@ function drawInfoTab()
         imgui.Text(u8'Тестер: Balenciaga_Collins[18].')
     end
     imgui.EndChild()
+
+    if imgui.BeginChild("Stats", imgui.ImVec2(0, 100), true) then
+        imgui.Text(u8'Статистика:')
+        imgui.Text(u8'Попыток: ' .. STATE.reportAttempts)
+        imgui.Text(u8'Принято: ' .. STATE.reportAnsweredCount)
+    end
+    imgui.EndChild()
+
     imgui.PopStyleColor()
 end
 
@@ -532,7 +654,8 @@ function onWindowMessage(msg, wparam, lparam)
             ini.main.keyBind = string.format("0x%X", STATE.keyBind)
             ini.main.keyBindName = STATE.keyBindName
             inicfg.save(ini, CONFIG.iniFilename)
-            sampAddChatMessage(string.format(CONFIG.tag .. u8'{FFFFFF}Новая клавиша активации ловли репорта: {00FF00}%s', STATE.keyBindName), -1)
+            sampAddChatMessage(string.format(CONFIG.tag .. '{FFFFFF}Новая клавиша: {00FF00}%s', STATE.keyBindName), -1)
+            logToFile("Новая клавиша: " .. STATE.keyBindName)
             return false
         end
     end
@@ -548,7 +671,6 @@ end
 
 -- Уведомления Arizona RP
 function show_arz_notify(type, title, text, time)
-    -- Примечание: для полной работы требуется encodeJson для MONET_VERSION
     if MONET_VERSION then
         local styleInt = type == 'info' and 3 or type == 'error' and 2 or 1
         local bs = raknetNewBitStream()
@@ -557,7 +679,6 @@ function show_arz_notify(type, title, text, time)
         raknetBitStreamWriteBool(bs, true)
         raknetEmulPacketReceiveBitStream(220, bs)
         raknetDeleteBitStream(bs)
-        -- Заглушка для MONET_VERSION, так как encodeJson отсутствует
         sampAddChatMessage(CONFIG.tag .. "Уведомление: " .. text, -1)
     else
         local str = ('window.executeEvent(\'event.notify.initialize\', \'["%s", "%s", "%s", "%s"]\');'):format(type, title, text, time)
@@ -574,20 +695,17 @@ end
 -- Отрисовка информационного окна
 imgui.OnFrame(function() return SETTINGS.infoWindowState[0] end, function(self)
     self.HideCursor = true
-    imgui.SetNextWindowSize(imgui.ImVec2(220, 175), imgui.Cond.FirstUseEver)
+    imgui.SetNextWindowSize(imgui.ImVec2(220, 200), imgui.Cond.FirstUseEver)
     imgui.SetNextWindowPos(imgui.ImVec2(ini.widget.posX, ini.widget.posY), imgui.Cond.Always)
     imgui.Begin(faicons('star') .. u8" | Информация ", SETTINGS.infoWindowState, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoCollapse)
-    imgui.CenterText(u8'Статус Ловли: ' .. (STATE.active and u8'Включена' or u8'Выключена'))
+    imgui.CenterText(u8'Статус: ' .. (STATE.active and u8'Включена' or u8'Выключена'))
     local elapsedTime = os.clock() - STATE.startTime
-    imgui.CenterText(string.format(u8'Время работы: %.2f сек', elapsedTime))
-    imgui.CenterText(string.format(u8'Отвечено репорта: %d', STATE.reportAnsweredCount))
+    imgui.CenterText(string.format(u8'Время: %.2f сек', elapsedTime))
+    imgui.CenterText(string.format(u8'Попыток: %d', STATE.reportAttempts))
+    imgui.CenterText(string.format(u8'Принято: %d', STATE.reportAnsweredCount))
     imgui.Separator()
-    imgui.Text(u8'Обработка диалогов:')
-    imgui.SameLine()
-    imgui.Text(SETTINGS.dialogHandlerEnabled[0] and u8'Включена' or u8'Выкл.')
-    imgui.Text(u8'Автостарт:')
-    imgui.SameLine()
-    imgui.Text(SETTINGS.autoStartEnabled[0] and u8'Включен' or u8'Выключен')
+    imgui.Text(u8'Диалоги: ' .. (SETTINGS.dialogHandlerEnabled[0] and u8'Вкл' or u8'Выкл'))
+    imgui.Text(u8'Автостарт: ' .. (SETTINGS.autoStartEnabled[0] and u8'Вкл' or u8'Выкл'))
     imgui.End()
 end)
 
@@ -598,4 +716,13 @@ end
 
 function showInfoWindowOff()
     SETTINGS.infoWindowState[0] = false
+end
+
+-- Функция логирования:
+function logToFile(message)
+    local file = io.open(getWorkingDirectory() .. "/RepFlowLog.txt", "a")
+    if file then
+        file:write(os.date("[%H:%M:%S] ") .. message .. "\n")
+        file:close()
+    end
 end
