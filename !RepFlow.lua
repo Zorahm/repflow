@@ -1,4 +1,3 @@
--- Зависимости MoonLoader и внешние библиотеки
 require 'lib.moonloader'
 local imgui = require 'mimgui'
 local sampev = require 'lib.samp.events'
@@ -8,23 +7,32 @@ local inicfg = require 'inicfg'
 local ffi = require 'ffi'
 local faicons = require 'fAwesome6'
 local requests = require 'requests'
+local dlstatus = require('moonloader').download_status
 
 -- Конфигурация скрипта
 local CONFIG = {
-    iniFilename = 'RepFlowCFG.ini',      -- Имя файла конфигурации
-    scriptVersion = "3.2 | Premium",     -- Версия скрипта
-    defaultKeyBind = 0x5A,               -- Клавиша активации по умолчанию: Z
-    defaultKeyBindName = 'Z',            -- Название клавиши по умолчанию
-    afkCooldown = 30,                    -- Задержка перед ловлей после AFK (сек)
-    tag = "{1E90FF} [RepFlow]: {FFFFFF}", -- Тег сообщений скрипта
-    tagInfo = "{1E90FF} [Информация]: {FFFFFF}", -- Тег информационных сообщений
+    iniFilename = 'RepFlowCFG.ini',
+    scriptVersion = "3.3 | Premium",
+    defaultKeyBind = 0x5A,
+    defaultKeyBindName = 'Z',
+    afkCooldown = 30,
+    tag = "{1E90FF} [RepFlow]: {FFFFFF}",
+    tagInfo = "{1E90FF} [Информация]: {FFFFFF}",
 }
 
 -- Утилиты ImGui
-local new = imgui.new                    -- Сокращение для создания объектов ImGui
+local new = imgui.new
 
 -- Данные ChangeLog
 local changelogEntries = {
+    {
+        version = "3.3 | Premium",
+        description = [[
+            - Добавлены новые стильные цветовые темы: "Космос", "Закат", "Неон".
+            - Обновлены существующие темы для более эстетичного вида.
+            - Улучшена читаемость интерфейса за счёт новых цветовых сочетаний.
+        ]]
+    },
     {
         version = "3.2 | Premium",
         description = [[
@@ -32,6 +40,7 @@ local changelogEntries = {
             - Добавлена статистика в инфо-окно.
             - Улучшена защита от флуда с настройкой паузы.
             - Добавлено логирование в файл.
+            - Добавлен выбор цветовых тем.
         ]]
     },
     {
@@ -45,85 +54,41 @@ local changelogEntries = {
     },
 }
 
--- Конфигурация обновления
-local GITHUB_RAW_URL = "https://raw.githubusercontent.com/Zorahm/repflow/main/!RepFlow.lua" -- Ссылка на основной файл
-local VERSION_URL = "https://raw.githubusercontent.com/Zorahm/repflow/main/version.txt" -- Ссылка на файл версии
-local CURRENT_VERSION = "3.2 | Premium" -- Текущая версия скрипта
-local SCRIPT_PATH = getWorkingDirectory() .. "/RepFlow.lua" -- Путь к текущему скрипту
+-- Переменные для авто-обновлений
+local update_state = false        -- Если true, начнётся обновление
+local update_found = false        -- Если true, доступна команда /update
+local script_vers = 3.3           -- Текущая версия скрипта (числовая)
+local script_vers_text = "3.3"    -- Текущая версия для отображения пользователю
 
--- Функция перекодировки текста из UTF-8 в CP1251 с обработкой ошибок
-local function toCP1251(text)
-    if type(text) ~= "string" or text == "" then
-        return "[Ошибка кодировки]"
-    end
-    local success, result = pcall(encoding.UTF8toCP1251, text)
-    if success then
-        return result
-    else
-        logToFile("Ошибка перекодировки: " .. tostring(result))
-        return "[Ошибка кодировки]"
-    end
-end
+local update_url = "https://raw.githubusercontent.com/Zorahm/repflow/main/update.ini"
+local update_path = getWorkingDirectory() .. "/update.ini"
 
--- Функция проверки версии
-function checkForUpdates()
-    local response = requests.get(VERSION_URL)
-    if not response then
-        sampAddChatMessage(toCP1251(CONFIG.tag .. "{FF0000}Ошибка проверки обновлений: нет ответа от сервера!"), -1)
-        logToFile("Ошибка проверки обновлений: requests.get() вернул nil для " .. VERSION_URL)
-        return
-    end
-    if response.status_code ~= 200 then
-        sampAddChatMessage(toCP1251(CONFIG.tag .. "{FF0000}Ошибка проверки обновлений: код " .. tostring(response.status_code)), -1)
-        logToFile("Ошибка проверки обновлений: код " .. tostring(response.status_code) .. " для " .. VERSION_URL)
-        return
-    end
-    local remoteVersion = response.text and response.text:gsub("%s+", "") or ""
-    if remoteVersion == "" then
-        sampAddChatMessage(toCP1251(CONFIG.tag .. "{FF0000}Ошибка: пустая версия на сервере!"), -1)
-        logToFile("Ошибка: version.txt пустой или недоступен")
-        return
-    end
-    if remoteVersion ~= CURRENT_VERSION then
-        sampAddChatMessage(toCP1251(CONFIG.tag .. "{FFFF00}Найдена новая версия: " .. remoteVersion .. ". Загрузка..."), -1)
-        logToFile("Найдена новая версия: " .. remoteVersion)
-        downloadUpdate()
-    else
-        sampAddChatMessage(toCP1251(CONFIG.tag .. "{00FF00}У вас последняя версия: " .. CURRENT_VERSION), -1)
-        logToFile("Версия актуальна: " .. CURRENT_VERSION)
-    end
-end
+local script_url = "https://raw.githubusercontent.com/Zorahm/repflow/main/!RepFlow.lua"
+local script_path = thisScript().path
 
--- Функция загрузки обновления
-function downloadUpdate()
-    local response = requests.get(GITHUB_RAW_URL)
-    if not response then
-        sampAddChatMessage(toCP1251(CONFIG.tag .. "{FF0000}Ошибка загрузки обновления: нет ответа от сервера!"), -1)
-        logToFile("Ошибка загрузки: requests.get() вернул nil для " .. GITHUB_RAW_URL)
-        return
-    end
-    if response.status_code ~= 200 then
-        sampAddChatMessage(toCP1251(CONFIG.tag .. "{FF0000}Ошибка загрузки обновления: код " .. tostring(response.status_code)), -1)
-        logToFile("Ошибка загрузки: код " .. tostring(response.status_code) .. " для " .. GITHUB_RAW_URL)
-        return
-    end
-    if not response.text or response.text == "" then
-        sampAddChatMessage(toCP1251(CONFIG.tag .. "{FF0000}Ошибка: файл скрипта пустой!"), -1)
-        logToFile("Ошибка: RepFlow.lua пустой или недоступен")
-        return
-    end
-    local file = io.open(SCRIPT_PATH, "w")
-    if not file then
-        sampAddChatMessage(toCP1251(CONFIG.tag .. "{FF0000}Ошибка записи файла обновления!"), -1)
-        logToFile("Ошибка: не удалось открыть файл " .. SCRIPT_PATH .. " для записи")
-        return
-    end
-    local scriptContent = toCP1251(response.text)
-    file:write(scriptContent)
-    file:close()
-    sampAddChatMessage(toCP1251(CONFIG.tag .. "{00FF00}Скрипт обновлён! Перезагрузите MoonLoader."), -1)
-    logToFile("Скрипт обновлён до новой версии")
-    thisScript():reload()
+function check_update()
+    downloadUrlToFile(update_url, update_path, function(id, status)
+        if status == dlstatus.STATUS_ENDDOWNLOADDATA then
+            local updateIni = inicfg.load(nil, update_path)
+            if updateIni and updateIni.info and updateIni.info.vers then
+                if tonumber(updateIni.info.vers) > script_vers then
+                    sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Имеется {32CD32}новая {FFFFFF}версия скрипта. Версия: {32CD32}" .. updateIni.info.vers_text .. ". {FFFFFF}Введите /update, чтобы обновить.", -1)
+                    update_found = true -- Обновление найдено
+                    logToFile("Найдена новая версия: " .. updateIni.info.vers_text)
+                else
+                    sampAddChatMessage(CONFIG.tag .. "{FFFFFF}У вас последняя версия скрипта: " .. script_vers_text, -1)
+                    logToFile("Версия актуальна: " .. script_vers_text)
+                end
+            else
+                sampAddChatMessage(CONFIG.tag .. "{FF0000}Ошибка: Не удалось загрузить информацию об обновлении.", -1)
+                logToFile("Ошибка загрузки update.ini")
+            end
+            os.remove(update_path)
+        elseif status == dlstatus.STATUS_DOWNLOADERROR then
+            sampAddChatMessage(CONFIG.tag .. "{FF0000}Ошибка: Не удалось проверить обновления.", -1)
+            logToFile("Ошибка проверки обновлений: download error")
+        end
+    end)
 end
 
 -- Глобальные состояния
@@ -143,15 +108,15 @@ local STATE = {
     reportAnsweredCount = 0,
     lastDialogTime = os.clock(),
     manualDisable = false,
-    reportAttempts = 0, -- Новая статистика
-    floodCooldown = 0,  -- Время паузы после флуда
+    reportAttempts = 0,
+    floodCooldown = 0,
 }
 
 -- Настройки интерфейса и поведения
 local SETTINGS = {
     otInterval = new.int(10),
     dialogTimeout = new.int(600),
-    floodPause = new.int(10), -- Пауза после флуда (сек)
+    floodPause = new.int(10),
     otIntervalBuffer = new.char[5](tostring(10)),
     dialogTimeoutBuffer = new.char[5](tostring(600)),
     floodPauseBuffer = new.char[5](tostring(10)),
@@ -165,7 +130,90 @@ local SETTINGS = {
     infoWindowState = new.bool(false),
     activeTab = new.int(0),
     disableAutoStartOnToggle = false,
+    selectedTheme = new.int(0), -- Выбранная тема (0 - стандартная)
 }
+
+-- Предопределённые цветовые темы
+local COLOR_THEMES = {
+    {
+        name = "Космос",
+        leftPanel = imgui.ImVec4(10 / 255, 15 / 255, 30 / 255, 1.0),    -- Глубокий тёмно-синий
+        rightPanel = imgui.ImVec4(15 / 255, 20 / 255, 40 / 255, 1.0),   -- Чуть светлее синий
+        childPanel = imgui.ImVec4(5 / 255, 10 / 255, 25 / 255, 1.0),    -- Ещё темнее для контраста
+        hover = imgui.ImVec4(50 / 255, 60 / 255, 100 / 255, 1.0),       -- Лёгкий голубой для акцента
+        button = imgui.ImVec4(30 / 255, 40 / 255, 80 / 255, 1.0),       -- Цвет кнопок
+        buttonHovered = imgui.ImVec4(50 / 255, 60 / 255, 100 / 255, 1.0), -- Цвет кнопок при наведении
+        buttonActive = imgui.ImVec4(70 / 255, 80 / 255, 120 / 255, 1.0), -- Цвет кнопок при нажатии
+        checkMark = imgui.ImVec4(150 / 255, 200 / 255, 255 / 255, 1.0), -- Цвет галочки в чекбоксе
+        frameBg = imgui.ImVec4(20 / 255, 25 / 255, 50 / 255, 1.0),      -- Фон комбобокса и текстовых полей
+        frameBgHovered = imgui.ImVec4(40 / 255, 45 / 255, 70 / 255, 1.0), -- Фон при наведении
+        frameBgActive = imgui.ImVec4(60 / 255, 65 / 255, 90 / 255, 1.0), -- Фон при активации
+        text = imgui.ImVec4(200 / 255, 220 / 255, 255 / 255, 1.0),      -- Цвет текста
+    },
+    {
+        name = "Закат",
+        leftPanel = imgui.ImVec4(50 / 255, 20 / 255, 10 / 255, 1.0),    -- Тёмный бордовый
+        rightPanel = imgui.ImVec4(70 / 255, 30 / 255, 20 / 255, 1.0),   -- Тёплый красно-оранжевый
+        childPanel = imgui.ImVec4(40 / 255, 15 / 255, 5 / 255, 1.0),    -- Глубокий тёмно-красный
+        hover = imgui.ImVec4(120 / 255, 60 / 255, 40 / 255, 1.0),       -- Яркий оранжевый для выделения
+        button = imgui.ImVec4(100 / 255, 40 / 255, 30 / 255, 1.0),      -- Цвет кнопок
+        buttonHovered = imgui.ImVec4(120 / 255, 60 / 255, 40 / 255, 1.0), -- Цвет кнопок при наведении
+        buttonActive = imgui.ImVec4(140 / 255, 80 / 255, 50 / 255, 1.0), -- Цвет кнопок при нажатии
+        checkMark = imgui.ImVec4(255 / 255, 150 / 255, 100 / 255, 1.0), -- Цвет галочки в чекбоксе
+        frameBg = imgui.ImVec4(80 / 255, 30 / 255, 20 / 255, 1.0),      -- Фон комбобокса и текстовых полей
+        frameBgHovered = imgui.ImVec4(100 / 255, 50 / 255, 30 / 255, 1.0), -- Фон при наведении
+        frameBgActive = imgui.ImVec4(120 / 255, 70 / 255, 40 / 255, 1.0), -- Фон при активации
+        text = imgui.ImVec4(255 / 255, 200 / 255, 180 / 255, 1.0),      -- Цвет текста
+    },
+    {
+        name = "Неон",
+        leftPanel = imgui.ImVec4(20 / 255, 40 / 255, 20 / 255, 1.0),    -- Тёмный зелёный фон
+        rightPanel = imgui.ImVec4(30 / 255, 50 / 255, 30 / 255, 1.0),   -- Чуть светлее зелёный
+        childPanel = imgui.ImVec4(15 / 255, 30 / 255, 15 / 255, 1.0),   -- Контрастный тёмный
+        hover = imgui.ImVec4(0 / 255, 200 / 255, 150 / 255, 1.0),       -- Яркий циан для кнопок
+        button = imgui.ImVec4(40 / 255, 80 / 255, 40 / 255, 1.0),       -- Цвет кнопок
+        buttonHovered = imgui.ImVec4(0 / 255, 200 / 255, 150 / 255, 1.0), -- Цвет кнопок при наведении
+        buttonActive = imgui.ImVec4(0 / 255, 220 / 255, 170 / 255, 1.0), -- Цвет кнопок при нажатии
+        checkMark = imgui.ImVec4(0 / 255, 255 / 255, 200 / 255, 1.0),   -- Цвет галочки в чекбоксе
+        frameBg = imgui.ImVec4(30 / 255, 60 / 255, 30 / 255, 1.0),      -- Фон комбобокса и текстовых полей
+        frameBgHovered = imgui.ImVec4(40 / 255, 80 / 255, 40 / 255, 1.0), -- Фон при наведении
+        frameBgActive = imgui.ImVec4(50 / 255, 100 / 255, 50 / 255, 1.0), -- Фон при активации
+        text = imgui.ImVec4(180 / 255, 255 / 255, 220 / 255, 1.0),      -- Цвет текста
+    },
+    {
+        name = "Лаванда",
+        leftPanel = imgui.ImVec4(40 / 255, 30 / 255, 60 / 255, 1.0),    -- Тёмный лавандовый
+        rightPanel = imgui.ImVec4(50 / 255, 40 / 255, 80 / 255, 1.0),   -- Мягкий фиолетовый
+        childPanel = imgui.ImVec4(30 / 255, 20 / 255, 50 / 255, 1.0),   -- Тёмный для панелей
+        hover = imgui.ImVec4(100 / 255, 80 / 255, 140 / 255, 1.0),      -- Светлый лавандовый акцент
+        button = imgui.ImVec4(60 / 255, 50 / 255, 100 / 255, 1.0),      -- Цвет кнопок
+        buttonHovered = imgui.ImVec4(100 / 255, 80 / 255, 140 / 255, 1.0), -- Цвет кнопок при наведении
+        buttonActive = imgui.ImVec4(120 / 255, 100 / 255, 160 / 255, 1.0), -- Цвет кнопок при нажатии
+        checkMark = imgui.ImVec4(180 / 255, 150 / 255, 220 / 255, 1.0), -- Цвет галочки в чекбоксе
+        frameBg = imgui.ImVec4(40 / 255, 30 / 255, 70 / 255, 1.0),      -- Фон комбобокса и текстовых полей
+        frameBgHovered = imgui.ImVec4(60 / 255, 50 / 255, 90 / 255, 1.0), -- Фон при наведении
+        frameBgActive = imgui.ImVec4(80 / 255, 70 / 255, 110 / 255, 1.0), -- Фон при активации
+        text = imgui.ImVec4(220 / 255, 200 / 255, 255 / 255, 1.0),      -- Цвет текста
+    },
+    {
+        name = "Графит",
+        leftPanel = imgui.ImVec4(30 / 255, 30 / 255, 30 / 255, 1.0),    -- Тёмно-серый
+        rightPanel = imgui.ImVec4(40 / 255, 40 / 255, 40 / 255, 1.0),   -- Средний серый
+        childPanel = imgui.ImVec4(20 / 255, 20 / 255, 20 / 255, 1.0),   -- Очень тёмный серый
+        hover = imgui.ImVec4(80 / 255, 80 / 255, 80 / 255, 1.0),        -- Светло-серый для кнопок
+        button = imgui.ImVec4(50 / 255, 50 / 255, 50 / 255, 1.0),       -- Цвет кнопок
+        buttonHovered = imgui.ImVec4(80 / 255, 80 / 255, 80 / 255, 1.0), -- Цвет кнопок при наведении
+        buttonActive = imgui.ImVec4(100 / 255, 100 / 255, 100 / 255, 1.0), -- Цвет кнопок при нажатии
+        checkMark = imgui.ImVec4(180 / 255, 180 / 255, 180 / 255, 1.0), -- Цвет галочки в чекбоксе
+        frameBg = imgui.ImVec4(30 / 255, 30 / 255, 30 / 255, 1.0),      -- Фон комбобокса и текстовых полей
+        frameBgHovered = imgui.ImVec4(50 / 255, 50 / 255, 50 / 255, 1.0), -- Фон при наведении
+        frameBgActive = imgui.ImVec4(70 / 255, 70 / 255, 70 / 255, 1.0), -- Фон при активации
+        text = imgui.ImVec4(200 / 255, 200 / 255, 200 / 255, 1.0),      -- Цвет текста
+    },
+}
+
+-- Текущая цветовая схема (по умолчанию - первая тема)
+local COLORS = COLOR_THEMES[1]
 
 -- Разрешение экрана
 local sw, sh = getScreenResolution()
@@ -186,6 +234,7 @@ local defaultConfig = {
         dialogHandlerEnabled = true,
         autoStartEnabled = true,
         otklflud = false,
+        selectedTheme = 0, -- Добавляем тему в конфиг
     },
     widget = {
         posX = 400,
@@ -204,14 +253,8 @@ SETTINGS.floodPause[0] = tonumber(ini.main.floodPause) or 10
 SETTINGS.dialogHandlerEnabled[0] = ini.main.dialogHandlerEnabled or true
 SETTINGS.autoStartEnabled[0] = ini.main.autoStartEnabled or true
 SETTINGS.hideFloodMsg[0] = ini.main.otklflud or false
-
--- Цветовая схема интерфейса
-local COLORS = {
-    leftPanel = imgui.ImVec4(27 / 255, 20 / 255, 30 / 255, 1.0),   -- Левый прямоугольник
-    rightPanel = imgui.ImVec4(24 / 255, 18 / 255, 28 / 255, 1.0),  -- Правый прямоугольник
-    childPanel = imgui.ImVec4(18 / 255, 13 / 255, 22 / 255, 1.0),  -- Child-окно
-    hover = imgui.ImVec4(63 / 255, 59 / 255, 66 / 255, 1.0),       -- Наведение на кнопки
-}
+SETTINGS.selectedTheme[0] = tonumber(ini.main.selectedTheme) or 0
+COLORS = COLOR_THEMES[SETTINGS.selectedTheme[0] + 1] -- Применяем загруженную тему
 
 -- Основной цикл скрипта
 function main()
@@ -224,14 +267,35 @@ function main()
 
     -- Проверка обновлений при запуске
     sampAddChatMessage(CONFIG.tag .. "Проверка обновлений...", -1)
-    --checkForUpdates()
-    
+    check_update()
+
+    if update_found then
+        sampRegisterChatCommand('update', function()
+            update_state = true
+            sampAddChatMessage(CONFIG.tag .. "Начинается обновление...", -1)
+            logToFile("Пользователь запустил обновление")
+        end)
+    end
 
     while true do
-        wait(100) -- Увеличиваем интервал для снижения нагрузки
+        wait(100)
         checkPauseAndDisableAutoStart()
         checkAutoStart()
         imgui.Process = SETTINGS.mainWindowState[0] and not STATE.gameMinimized
+
+        if update_state then
+            downloadUrlToFile(script_url, script_path, function(id, status)
+                if status == dlstatus.STATUS_ENDDOWNLOADDATA then
+                    sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Скрипт {32CD32}успешно {FFFFFF}обновлён. Перезапустите MoonLoader.", -1)
+                    logToFile("Скрипт успешно обновлён")
+                    thisScript():reload()
+                elseif status == dlstatus.STATUS_DOWNLOADERROR then
+                    sampAddChatMessage(CONFIG.tag .. "{FF0000}Ошибка: Не удалось скачать обновление.", -1)
+                    logToFile("Ошибка при скачивании обновления")
+                end
+            end)
+            break
+        end
 
         if STATE.moveWidget then
             local cursorX, cursorY = getCursorPos()
@@ -260,7 +324,7 @@ function main()
             local interval = SETTINGS.useMilliseconds[0] and SETTINGS.otInterval[0] or (SETTINGS.otInterval[0] * 1000)
             if currentTime - STATE.lastOtTime >= interval then
                 STATE.reportAttempts = STATE.reportAttempts + 1
-                sampSendChat('/ot')
+                sampSendChatMessage('/ot')
                 logToFile("Отправка /ot, попытка #" .. STATE.reportAttempts)
                 STATE.lastOtTime = currentTime
             end
@@ -336,6 +400,7 @@ function onToggleActive()
     local status = STATE.active and '{00FF00}включена' or '{FF0000}выключена'
     local statusArz = STATE.active and 'включена' or 'выключена'
     show_arz_notify('info', 'RepFlow', 'Ловля ' .. statusArz .. '!', 2000)
+    logToFile("Ловля " .. statusArz)
 end
 
 -- Сохранение настроек окна
@@ -368,6 +433,7 @@ function checkAutoStart()
         if not SETTINGS.disableAutoStartOnToggle and (currentTime - STATE.lastDialogTime) > SETTINGS.dialogTimeout[0] then
             STATE.active = true
             show_arz_notify('info', 'RepFlow', 'Ловля включена по таймауту', 3000)
+            logToFile("Ловля включена по таймауту")
         end
     end
 end
@@ -375,6 +441,8 @@ end
 -- Сохранение общих настроек
 function saveSettings()
     ini.main.dialogTimeout = SETTINGS.dialogTimeout[0]
+    ini.main.floodPause = SETTINGS.floodPause[0]
+    ini.main.selectedTheme = SETTINGS.selectedTheme[0]
     inicfg.save(ini, CONFIG.iniFilename)
 end
 
@@ -399,11 +467,11 @@ end
 
 -- Вкладка "Флудер"
 function drawMainTab()
-    local panelColor = COLORS.childPanel
+    local panelColor = COLORS.childPanel -- Используем COLORS.childPanel
     imgui.Text(faicons('gear') .. u8" Настройки  /  " .. faicons('message') .. u8" Флудер")
     imgui.Separator()
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
-    if imgui.BeginChild("Flooder", imgui.ImVec2(0, 200), true) then
+    if imgui.BeginChild("Flooder", imgui.ImVec2(0, 150), true) then
         imgui.PushItemWidth(100)
         if imgui.Checkbox(u8'Использовать миллисекунды', SETTINGS.useMilliseconds) then
             ini.main.useMilliseconds = SETTINGS.useMilliseconds[0]
@@ -427,6 +495,12 @@ function drawMainTab()
             end
         end
         imgui.PopItemWidth()
+    end
+    imgui.EndChild()
+    imgui.PopStyleColor()
+
+    imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
+    if imgui.BeginChild("FloodPause", imgui.ImVec2(0, 100), true) then
         imgui.Text(u8'Пауза после флуда (сек):')
         imgui.Text(u8'Текущая: ' .. SETTINGS.floodPause[0])
         imgui.PushItemWidth(45)
@@ -515,7 +589,7 @@ function drawSettingsTab()
     imgui.PopStyleColor()
 
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
-    if imgui.BeginChild("WindowPosition", imgui.ImVec2(0, 80), true) then
+    if imgui.BeginChild("WindowPosition", imgui.ImVec2(0, 90), true) then
         imgui.Text(u8'Положение инфо-окна:')
         imgui.SameLine()
         if imgui.Button(u8'Изменить') then
@@ -524,7 +598,30 @@ function drawSettingsTab()
         imgui.Text(u8'Обновление скрипта:')
         imgui.SameLine()
         if imgui.Button(u8'Проверить') then
-            checkForUpdates() -- Ручная проверка обновлений
+            checkForUpdates()
+        end
+    end
+    imgui.EndChild()
+    imgui.PopStyleColor()
+
+    imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
+    if imgui.BeginChild("ColorScheme", imgui.ImVec2(0, 100), true) then
+        imgui.Text(u8'Цветовая схема:')
+        local themeNames = {}
+        for i, theme in ipairs(COLOR_THEMES) do
+            themeNames[i] = u8(theme.name) -- Заполняем таблицу именами
+        end
+        -- Преобразуем таблицу в массив строк для imgui.Combo
+        local cThemeNames = ffi.new("const char*[?]", #themeNames)
+        for i, name in ipairs(themeNames) do
+            cThemeNames[i - 1] = name -- Индексация с 0
+        end
+        if imgui.Combo(u8'##ThemeSelector', SETTINGS.selectedTheme, cThemeNames, #themeNames) then
+            COLORS = COLOR_THEMES[SETTINGS.selectedTheme[0] + 1]
+            ini.main.selectedTheme = SETTINGS.selectedTheme[0]
+            inicfg.save(ini, CONFIG.iniFilename)
+            sampAddChatMessage(CONFIG.tagInfo .. "Тема изменена: {32CD32}" .. COLOR_THEMES[SETTINGS.selectedTheme[0] + 1].name, -1)
+            logToFile("Тема изменена на: " .. COLOR_THEMES[SETTINGS.selectedTheme[0] + 1].name)
         end
     end
     imgui.EndChild()
@@ -596,14 +693,6 @@ function drawInfoTab()
         imgui.Text(u8'Тестер: Balenciaga_Collins[18].')
     end
     imgui.EndChild()
-
-    if imgui.BeginChild("Stats", imgui.ImVec2(0, 100), true) then
-        imgui.Text(u8'Статистика:')
-        imgui.Text(u8'Попыток: ' .. STATE.reportAttempts)
-        imgui.Text(u8'Принято: ' .. STATE.reportAnsweredCount)
-    end
-    imgui.EndChild()
-
     imgui.PopStyleColor()
 end
 
@@ -622,7 +711,16 @@ end
 imgui.OnFrame(function() return SETTINGS.mainWindowState[0] end, function(player)
     imgui.SetNextWindowSize(imgui.ImVec2(800, 500), imgui.Cond.FirstUseEver)
     imgui.SetNextWindowPos(imgui.ImVec2(sw / 2, sh / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+    -- Применяем стили для всех элементов
     imgui.PushStyleColor(imgui.Col.WindowBg, COLORS.rightPanel)
+    imgui.PushStyleColor(imgui.Col.Text, COLORS.text)
+    imgui.PushStyleColor(imgui.Col.Button, COLORS.button)
+    imgui.PushStyleColor(imgui.Col.ButtonHovered, COLORS.buttonHovered)
+    imgui.PushStyleColor(imgui.Col.ButtonActive, COLORS.buttonActive)
+    imgui.PushStyleColor(imgui.Col.CheckMark, COLORS.checkMark)
+    imgui.PushStyleColor(imgui.Col.FrameBg, COLORS.frameBg)
+    imgui.PushStyleColor(imgui.Col.FrameBgHovered, COLORS.frameBgHovered)
+    imgui.PushStyleColor(imgui.Col.FrameBgActive, COLORS.frameBgActive)
     resetIO()
 
     if imgui.Begin(faicons('bolt') .. u8' RepFlow | Premium', SETTINGS.mainWindowState, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoCollapse) then
@@ -659,7 +757,8 @@ imgui.OnFrame(function() return SETTINGS.mainWindowState[0] end, function(player
         imgui.PopStyleColor()
     end
     imgui.End()
-    imgui.PopStyleColor()
+    -- Убираем все стили
+    imgui.PopStyleColor(9) -- Соответствует количеству PushStyleColor
 end)
 
 -- Обработка смены клавиши
@@ -718,9 +817,9 @@ imgui.OnFrame(function() return SETTINGS.infoWindowState[0] end, function(self)
     imgui.Begin(faicons('star') .. u8" | Информация ", SETTINGS.infoWindowState, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoCollapse)
     imgui.CenterText(u8'Статус: ' .. (STATE.active and u8'Включена' or u8'Выключена'))
     local elapsedTime = os.clock() - STATE.startTime
-    imgui.CenterText(string.format(u8'Время: %.2f сек', elapsedTime))
-    imgui.CenterText(string.format(u8'Попыток: %d', STATE.reportAttempts))
-    imgui.CenterText(string.format(u8'Принято: %d', STATE.reportAnsweredCount))
+    imgui.Text(string.format(u8'Время: %.2f сек', elapsedTime))
+    imgui.Text(string.format(u8'Попыток: %d', STATE.reportAttempts))
+    imgui.Text(string.format(u8'Принято: %d', STATE.reportAnsweredCount))
     imgui.Separator()
     imgui.Text(u8'Диалоги: ' .. (SETTINGS.dialogHandlerEnabled[0] and u8'Вкл' or u8'Выкл'))
     imgui.Text(u8'Автостарт: ' .. (SETTINGS.autoStartEnabled[0] and u8'Вкл' or u8'Выкл'))
@@ -736,7 +835,7 @@ function showInfoWindowOff()
     SETTINGS.infoWindowState[0] = false
 end
 
--- Функция логирования:
+-- Функция логирования
 function logToFile(message)
     local file = io.open(getWorkingDirectory() .. "/RepFlowLog.txt", "a")
     if file then
