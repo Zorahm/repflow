@@ -12,7 +12,7 @@ local dlstatus = require('moonloader').download_status
 -- Конфигурация скрипта
 local CONFIG = {
     iniFilename = 'RepFlowCFG.ini',
-    scriptVersion = "3.3 | Premium",
+    scriptVersion = "3.4 | Premium",
     defaultKeyBind = 0x5A,
     defaultKeyBindName = 'Z',
     afkCooldown = 30,
@@ -25,6 +25,16 @@ local new = imgui.new
 
 -- Данные ChangeLog
 local changelogEntries = {
+    {
+        version = "3.4 | Premium",
+        description = [[
+            - Обновлено меню настроек: чекбоксы распределены по категориям (Диалоги, Флуд, Обновления, Логирование).
+            - Добавлена возможность отключить логирование каждого действия (критические логи остаются).
+            - Добавлена поддержка профилей настроек: теперь можно сохранять и загружать до трёх профилей.
+            - Добавлено автоматическое логирование принятых репортов в файл repflow_reports.log.
+            - Добавлена новая вкладка "Статистика" с информацией о времени работы, попытках, репортах и флуде.
+        ]]
+    },
     {
         version = "3.3 | Premium",
         description = [[
@@ -57,8 +67,8 @@ local changelogEntries = {
 -- Переменные для авто-обновлений
 local update_state = false        -- Если true, начнётся обновление
 local update_found = false        -- Если true, доступна команда /update
-local script_vers = 3.3           -- Текущая версия скрипта (числовая)
-local script_vers_text = "3.3"    -- Текущая версия для отображения пользователю
+local script_vers = 3.4           -- Текущая версия скрипта (числовая)
+local script_vers_text = "3.4"    -- Текущая версия для отображения пользователю
 
 local update_url = "https://raw.githubusercontent.com/Zorahm/repflow/main/update.ini"
 local update_path = getWorkingDirectory() .. "/update.ini"
@@ -110,6 +120,8 @@ local STATE = {
     manualDisable = false,
     reportAttempts = 0,
     floodCooldown = 0,
+    scriptStartTime = os.clock(),
+    floodCount = 0,
 }
 
 -- Настройки интерфейса и поведения
@@ -130,7 +142,11 @@ local SETTINGS = {
     infoWindowState = new.bool(false),
     activeTab = new.int(0),
     disableAutoStartOnToggle = false,
-    selectedTheme = new.int(0), -- Выбранная тема (0 - стандартная)
+    selectedTheme = new.int(0),
+    useFloodPause = new.bool(true),
+    autoUpdateEnabled = new.bool(true),
+    logActionsEnabled = new.bool(true),
+    selectedProfile = new.int(0), -- Текущий выбранный профиль (0 = Профиль 1, 1 = Профиль 2, 2 = Профиль 3)
 }
 
 -- Предопределённые цветовые темы
@@ -234,7 +250,11 @@ local defaultConfig = {
         dialogHandlerEnabled = true,
         autoStartEnabled = true,
         otklflud = false,
-        selectedTheme = 0, -- Добавляем тему в конфиг
+        selectedTheme = 0,
+        useFloodPause = true,
+        autoUpdateEnabled = true,
+        logActionsEnabled = true,
+        selectedProfile = 0, -- По умолчанию Профиль 1
     },
     widget = {
         posX = 400,
@@ -255,6 +275,10 @@ SETTINGS.autoStartEnabled[0] = ini.main.autoStartEnabled or true
 SETTINGS.hideFloodMsg[0] = ini.main.otklflud or false
 SETTINGS.selectedTheme[0] = tonumber(ini.main.selectedTheme) or 0
 COLORS = COLOR_THEMES[SETTINGS.selectedTheme[0] + 1] -- Применяем загруженную тему
+SETTINGS.useFloodPause[0] = ini.main.useFloodPause or true
+SETTINGS.autoUpdateEnabled[0] = ini.main.autoUpdateEnabled or true
+SETTINGS.logActionsEnabled[0] = ini.main.logActionsEnabled or true
+SETTINGS.selectedProfile[0] = ini.main.selectedProfile or 0
 
 -- Основной цикл скрипта
 function main()
@@ -265,9 +289,16 @@ function main()
     show_arz_notify('success', 'RepFlow', 'Успешная загрузка. Активация: /arep', 9000)
     logToFile("Скрипт загружен")
 
-    -- Проверка обновлений при запуске
-    sampAddChatMessage(CONFIG.tag .. "Проверка обновлений...", -1)
-    check_update()
+    -- Загружаем настройки из выбранного профиля
+    loadSettingsFromProfile()
+
+    -- Проверка обновлений при запуске, если включено
+    if SETTINGS.autoUpdateEnabled[0] then
+        sampAddChatMessage(CONFIG.tag .. "Проверка обновлений...", -1)
+        check_update()
+    else
+        sampAddChatMessage(CONFIG.tag .. "Автоматическая проверка обновлений отключена", -1)
+    end
 
     if update_found then
         sampRegisterChatCommand('update', function()
@@ -412,15 +443,17 @@ function saveWindowSettings()
 end
 
 -- Обработка появления диалогов
-function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
-    if dialogId == 1334 and SETTINGS.dialogHandlerEnabled[0] then
-        STATE.lastDialogTime = os.clock()
-        STATE.reportAnsweredCount = STATE.reportAnsweredCount + 1
-        logToFile("Репорт принят, всего: " .. STATE.reportAnsweredCount)
-        sampAddChatMessage(CONFIG.tag .. '{00FF00}Репорт принят! Отвечено: ' .. STATE.reportAnsweredCount, -1)
-        if STATE.active then
-            STATE.active = false
-            show_arz_notify('info', 'RepFlow', 'Ловля отключена из-за окна репорта!', 3000)
+function onShowDialog(dialogId, style, title, button1, button2, text)
+    if SETTINGS.dialogHandlerEnabled[0] and dialogId == 1334 and title:find("Репорт от") then
+        local playerName = text:match("Репорт от (.+):")
+        local reportText = text:match(":(.+)%[Принять%]")
+        if playerName and reportText then
+            logReport(playerName, reportText)
+            STATE.reportAnsweredCount = STATE.reportAnsweredCount + 1
+            sampSendDialogResponse(dialogId, 1, 0, "")
+            sampAddChatMessage(CONFIG.tag .. "Репорт принят от " .. playerName, -1)
+            logToFile("Репорт принят от " .. playerName)
+            return false
         end
     end
 end
@@ -443,6 +476,9 @@ function saveSettings()
     ini.main.dialogTimeout = SETTINGS.dialogTimeout[0]
     ini.main.floodPause = SETTINGS.floodPause[0]
     ini.main.selectedTheme = SETTINGS.selectedTheme[0]
+    ini.main.useFloodPause = SETTINGS.useFloodPause[0]
+    ini.main.autoUpdateEnabled = SETTINGS.autoUpdateEnabled[0]
+    ini.main.logActionsEnabled = SETTINGS.logActionsEnabled[0] -- Сохраняем настройку логирования
     inicfg.save(ini, CONFIG.iniFilename)
 end
 
@@ -548,7 +584,7 @@ function drawSettingsTab()
     imgui.PopStyleColor()
 
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
-    if imgui.BeginChild("DialogOptions", imgui.ImVec2(0, 150), true) then
+    if imgui.BeginChild("DialogOptions", imgui.ImVec2(0, 110), true) then
         imgui.Text(u8"Обработка диалогов")
         if imgui.Checkbox(u8'Обрабатывать диалоги', SETTINGS.dialogHandlerEnabled) then
             ini.main.dialogHandlerEnabled = SETTINGS.dialogHandlerEnabled[0]
@@ -558,9 +594,51 @@ function drawSettingsTab()
             ini.main.autoStartEnabled = SETTINGS.autoStartEnabled[0]
             inicfg.save(ini, CONFIG.iniFilename)
         end
+    end
+    imgui.EndChild()
+    imgui.PopStyleColor()
+
+    imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
+    if imgui.BeginChild("FloodOptions", imgui.ImVec2(0, 110), true) then
+        imgui.Text(u8"Настройки флуда")
         if imgui.Checkbox(u8'Скрыть "Не флуди"', SETTINGS.hideFloodMsg) then
             ini.main.otklflud = SETTINGS.hideFloodMsg[0]
             inicfg.save(ini, CONFIG.iniFilename)
+        end
+        if imgui.Checkbox(u8'Использовать паузу после флуда', SETTINGS.useFloodPause) then
+            ini.main.useFloodPause = SETTINGS.useFloodPause[0]
+            inicfg.save(ini, CONFIG.iniFilename)
+            sampAddChatMessage(CONFIG.tagInfo .. "Пауза после флуда: {32CD32}" .. (SETTINGS.useFloodPause[0] and "включена" or "выключена"), -1)
+        end
+    end
+    imgui.EndChild()
+    imgui.PopStyleColor()
+
+    imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
+    if imgui.BeginChild("UpdateOptions", imgui.ImVec2(0, 110), true) then
+        imgui.Text(u8"Обновления")
+        if imgui.Checkbox(u8'Автообновление при запуске', SETTINGS.autoUpdateEnabled) then
+            ini.main.autoUpdateEnabled = SETTINGS.autoUpdateEnabled[0]
+            inicfg.save(ini, CONFIG.iniFilename)
+            sampAddChatMessage(CONFIG.tagInfo .. "Автообновление: {32CD32}" .. (SETTINGS.autoUpdateEnabled[0] and "включено" or "выключено"), -1)
+        end
+        imgui.Text(u8'Ручная проверка:')
+        imgui.SameLine()
+        if imgui.Button(u8'Проверить') then
+            sampAddChatMessage(CONFIG.tag .. "Проверка обновлений...", -1)
+            check_update()
+        end
+    end
+    imgui.EndChild()
+    imgui.PopStyleColor()
+
+    imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
+    if imgui.BeginChild("LoggingOptions", imgui.ImVec2(0, 80), true) then
+        imgui.Text(u8"Логирование")
+        if imgui.Checkbox(u8'Логировать действия', SETTINGS.logActionsEnabled) then
+            ini.main.logActionsEnabled = SETTINGS.logActionsEnabled[0]
+            inicfg.save(ini, CONFIG.iniFilename)
+            sampAddChatMessage(CONFIG.tagInfo .. "Логирование действий: {32CD32}" .. (SETTINGS.logActionsEnabled[0] and "включено" or "выключено"), -1)
         end
     end
     imgui.EndChild()
@@ -571,7 +649,7 @@ function drawSettingsTab()
         imgui.Text(u8'Тайм-аут автостарта (сек):')
         imgui.Text(u8'Текущий: ' .. SETTINGS.dialogTimeout[0])
         imgui.PushItemWidth(45)
-        imgui.InputText(u8'', SETTINGS.dialogTimeoutBuffer, ffi.sizeof(SETTINGS.dialogTimeoutBuffer))
+        imgui.InputText(u8'##dialogTimeoutInput', SETTINGS.dialogTimeoutBuffer, ffi.sizeof(SETTINGS.dialogTimeoutBuffer))
         imgui.SameLine()
         if imgui.Button(faicons('floppy_disk') .. u8" Сохранить") then
             local newValue = tonumber(ffi.string(SETTINGS.dialogTimeoutBuffer))
@@ -589,16 +667,33 @@ function drawSettingsTab()
     imgui.PopStyleColor()
 
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
-    if imgui.BeginChild("WindowPosition", imgui.ImVec2(0, 90), true) then
+    if imgui.BeginChild("WindowPosition", imgui.ImVec2(0, 60), true) then
         imgui.Text(u8'Положение инфо-окна:')
         imgui.SameLine()
         if imgui.Button(u8'Изменить') then
             startMovingWindow()
         end
-        imgui.Text(u8'Обновление скрипта:')
+    end
+    imgui.EndChild()
+    imgui.PopStyleColor()
+
+    imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
+    if imgui.BeginChild("ProfileOptions", imgui.ImVec2(0, 90), true) then
+        imgui.Text(u8'Профиль настроек:')
+        local profiles = { u8"Профиль 1", u8"Профиль 2", u8"Профиль 3" }
+        local cProfiles = ffi.new("const char*[?]", #profiles)
+        for i, name in ipairs(profiles) do cProfiles[i - 1] = name end
+        if imgui.Combo(u8'##ProfileSelector', SETTINGS.selectedProfile, cProfiles, #profiles) then
+            ini.main.selectedProfile = SETTINGS.selectedProfile[0]
+            inicfg.save(ini, CONFIG.iniFilename)
+            loadSettingsFromProfile()
+        end
         imgui.SameLine()
-        if imgui.Button(u8'Проверить') then
-            checkForUpdates()
+        if imgui.Button(u8'Сохранить профиль') then
+            local profileName = "profile_" .. (SETTINGS.selectedProfile[0] + 1)
+            inicfg.save(ini, "moonloader/" .. profileName .. ".ini")
+            sampAddChatMessage(CONFIG.tag .. "Профиль сохранён: Профиль " .. (SETTINGS.selectedProfile[0] + 1), -1)
+            logToFile("Профиль сохранён: Профиль " .. (SETTINGS.selectedProfile[0] + 1))
         end
     end
     imgui.EndChild()
@@ -609,12 +704,11 @@ function drawSettingsTab()
         imgui.Text(u8'Цветовая схема:')
         local themeNames = {}
         for i, theme in ipairs(COLOR_THEMES) do
-            themeNames[i] = u8(theme.name) -- Заполняем таблицу именами
+            themeNames[i] = u8(theme.name)
         end
-        -- Преобразуем таблицу в массив строк для imgui.Combo
         local cThemeNames = ffi.new("const char*[?]", #themeNames)
         for i, name in ipairs(themeNames) do
-            cThemeNames[i - 1] = name -- Индексация с 0
+            cThemeNames[i - 1] = name
         end
         if imgui.Combo(u8'##ThemeSelector', SETTINGS.selectedTheme, cThemeNames, #themeNames) then
             COLORS = COLOR_THEMES[SETTINGS.selectedTheme[0] + 1]
@@ -628,12 +722,26 @@ function drawSettingsTab()
     imgui.PopStyleColor()
 end
 
--- Фильтрация сообщений о флуде
+function logReport(playerName, reportText)
+    local reportFile = io.open("moonloader/repflow_reports.log", "a")
+    if reportFile then
+        local timestamp = os.date("%Y-%m-%d %H:%M:%S")
+        reportFile:write(string.format("[%s] Игрок: %s | Репорт: %s\n", timestamp, playerName, reportText))
+        reportFile:close()
+    end
+end
+
 function filterFloodMessage(text)
     if SETTINGS.hideFloodMsg[0] and text:find("%[Ошибка%] {FFFFFF}Не флуди!") then
-        STATE.floodCooldown = os.clock() * 1000 + (SETTINGS.floodPause[0] * 1000)
-        sampAddChatMessage(CONFIG.tag .. "Флуд, пауза на " .. SETTINGS.floodPause[0] .. " сек", -1)
-        logToFile("Флуд, пауза на " .. SETTINGS.floodPause[0] .. " сек")
+        STATE.floodCount = STATE.floodCount + 1
+        if SETTINGS.useFloodPause[0] then
+            STATE.floodCooldown = os.clock() * 1000 + (SETTINGS.floodPause[0] * 1000)
+            sampAddChatMessage(CONFIG.tag .. "Флуд, пауза на " .. SETTINGS.floodPause[0] .. " сек", -1)
+            logToFile("Флуд, пауза на " .. SETTINGS.floodPause[0] .. " сек")
+        else
+            sampAddChatMessage(CONFIG.tag .. "Флуд обнаружен, пауза отключена", -1)
+            logToFile("Флуд обнаружен, пауза отключена")
+        end
         return false
     elseif SETTINGS.hideFloodMsg[0] and text:find("%[Ошибка%] {FFFFFF}Сейчас нет вопросов в репорт!") then
         return false
@@ -696,6 +804,29 @@ function drawInfoTab()
     imgui.PopStyleColor()
 end
 
+function drawStatsTab()
+    local panelColor = COLORS.childPanel
+    imgui.Text(faicons('chart-line') .. u8" Статистика работы скрипта")
+    imgui.Separator()
+    imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
+    if imgui.BeginChild("Stats", imgui.ImVec2(0, -1), true) then
+        imgui.Text(u8"Общее время работы: " .. string.format("%.2f", os.clock() - STATE.scriptStartTime) .. u8" сек")
+        imgui.Text(u8"Попыток отправки /ot: " .. STATE.reportAttempts)
+        imgui.Text(u8"Принято репортов: " .. STATE.reportAnsweredCount)
+        imgui.Text(u8"Обнаружено флудов: " .. STATE.floodCount)
+        if imgui.Button(u8"Сбросить статистику") then
+            STATE.reportAttempts = 0
+            STATE.reportAnsweredCount = 0
+            STATE.floodCount = 0
+            STATE.scriptStartTime = os.clock()
+            sampAddChatMessage(CONFIG.tag .. "Статистика сброшена", -1)
+            logToFile("Статистика сброшена")
+        end
+    end
+    imgui.EndChild()
+    imgui.PopStyleColor()
+end
+
 -- Вкладка "ChangeLog"
 function drawChangeLogTab()
     imgui.Text(faicons('star') .. u8" RepFlow  /  " .. faicons('bolt') .. u8" ChangeLog")
@@ -726,7 +857,7 @@ imgui.OnFrame(function() return SETTINGS.mainWindowState[0] end, function(player
     if imgui.Begin(faicons('bolt') .. u8' RepFlow | Premium', SETTINGS.mainWindowState, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoCollapse) then
         imgui.PushStyleColor(imgui.Col.ChildBg, COLORS.leftPanel)
         if imgui.BeginChild("left_panel", imgui.ImVec2(130, -1), false) then
-            local tabNames = { "Флудер", "Настройки", "Информация", "ChangeLog" }
+            local tabNames = { "Флудер", "Настройки", "Информация", "Статистика", "ChangeLog" }
             for i, name in ipairs(tabNames) do
                 if i - 1 == SETTINGS.activeTab[0] then
                     imgui.PushStyleColor(imgui.Col.Button, COLORS.hover)
@@ -750,7 +881,8 @@ imgui.OnFrame(function() return SETTINGS.mainWindowState[0] end, function(player
             if SETTINGS.activeTab[0] == 0 then drawMainTab()
             elseif SETTINGS.activeTab[0] == 1 then drawSettingsTab()
             elseif SETTINGS.activeTab[0] == 2 then drawInfoTab()
-            elseif SETTINGS.activeTab[0] == 3 then drawChangeLogTab()
+            elseif SETTINGS.activeTab[0] == 3 then drawStatsTab()
+            elseif SETTINGS.activeTab[0] == 4 then drawChangeLogTab()
             end
         end
         imgui.EndChild()
@@ -809,6 +941,27 @@ function show_arz_notify(type, title, text, time)
     end
 end
 
+function loadSettingsFromProfile()
+    local profileName = "profile_" .. (SETTINGS.selectedProfile[0] + 1)
+    local profileIni = inicfg.load(defaultConfig, "moonloader/" .. profileName .. ".ini")
+    SETTINGS.otInterval[0] = profileIni.main.otInterval or 10
+    SETTINGS.dialogTimeout[0] = profileIni.main.dialogTimeout or 600
+    SETTINGS.floodPause[0] = profileIni.main.floodPause or 10
+    SETTINGS.useMilliseconds[0] = profileIni.main.useMilliseconds or false
+    SETTINGS.hideFloodMsg[0] = profileIni.main.otklflud or true
+    SETTINGS.autoStartEnabled[0] = profileIni.main.autoStartEnabled or true
+    SETTINGS.dialogHandlerEnabled[0] = profileIni.main.dialogHandlerEnabled or true
+    SETTINGS.selectedTheme[0] = profileIni.main.selectedTheme or 0
+    SETTINGS.useFloodPause[0] = profileIni.main.useFloodPause or true
+    SETTINGS.autoUpdateEnabled[0] = profileIni.main.autoUpdateEnabled or true
+    SETTINGS.logActionsEnabled[0] = profileIni.main.logActionsEnabled or true
+    COLORS = COLOR_THEMES[SETTINGS.selectedTheme[0] + 1]
+    ini.widget.posX = profileIni.widget.posX or 400
+    ini.widget.posY = profileIni.widget.posY or 400
+    sampAddChatMessage(CONFIG.tag .. "Загружен профиль: Профиль " .. (SETTINGS.selectedProfile[0] + 1), -1)
+    logToFile("Загружен профиль: Профиль " .. (SETTINGS.selectedProfile[0] + 1))
+end
+
 -- Отрисовка информационного окна
 imgui.OnFrame(function() return SETTINGS.infoWindowState[0] end, function(self)
     self.HideCursor = true
@@ -837,9 +990,13 @@ end
 
 -- Функция логирования
 function logToFile(message)
-    local file = io.open(getWorkingDirectory() .. "/RepFlowLog.txt", "a")
-    if file then
-        file:write(os.date("[%H:%M:%S] ") .. message .. "\n")
-        file:close()
+    if not SETTINGS.logActionsEnabled[0] and not message:find("Ошибка") then
+        return -- Не логируем, если отключено, кроме ошибок
+    end
+    local logFile = io.open("moonloader/repflow.log", "a")
+    if logFile then
+        local timestamp = os.date("%Y-%m-%d %H:%M:%S")
+        logFile:write(string.format("[%s] %s\n", timestamp, message))
+        logFile:close()
     end
 end
