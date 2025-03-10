@@ -300,13 +300,7 @@ function main()
         sampAddChatMessage(CONFIG.tag .. "Автоматическая проверка обновлений отключена", -1)
     end
 
-    if update_found then
-        sampRegisterChatCommand('update', function()
-            update_state = true
-            sampAddChatMessage(CONFIG.tag .. "Начинается обновление...", -1)
-            logToFile("Пользователь запустил обновление")
-        end)
-    end
+    sampRegisterChatCommand("update", cmd_update)
 
     while true do
         wait(100)
@@ -499,6 +493,16 @@ end
 function cmd_arep(arg)
     SETTINGS.mainWindowState[0] = not SETTINGS.mainWindowState[0]
     imgui.Process = SETTINGS.mainWindowState[0]
+end
+
+function cmd_update(arg)
+    if update_found then
+        update_state = true
+        sampAddChatMessage(CONFIG.tag .. "Начинается обновление...", -1)
+        logToFile("Пользователь запустил обновление")
+    else
+        sampAddChatMessage(CONFIG.tag .. "{FF0000}Нет доступных обновлений для установки.", -1)
+    end
 end
 
 -- Вкладка "Флудер"
