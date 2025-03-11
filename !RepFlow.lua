@@ -9,7 +9,7 @@ local faicons = require 'fAwesome6'
 local requests = require 'requests'
 local dlstatus = require('moonloader').download_status
 
--- ÐšÐ¾Ð½Ñ„Ð¸Ð³ÑƒÑ€Ð°Ñ†Ð¸Ñ ÑÐºÑ€Ð¸Ð¿Ñ‚Ð°
+-- Êîíôèãóðàöèÿ ñêðèïòà
 local CONFIG = {
     iniFilename = 'RepFlowCFG.ini',
     scriptVersion = "3.6 | Premium",
@@ -17,33 +17,33 @@ local CONFIG = {
     defaultKeyBindName = 'Z',
     afkCooldown = 30,
     tag = "{1E90FF} [RepFlow]: {FFFFFF}",
-    tagInfo = "{1E90FF} [Ð˜Ð½Ñ„Ð¾Ñ€Ð¼Ð°Ñ†Ð¸Ñ]: {FFFFFF}",
+    tagInfo = "{1E90FF} [Èíôîðìàöèÿ]: {FFFFFF}",
 }
 
--- Ð£Ñ‚Ð¸Ð»Ð¸Ñ‚Ñ‹ ImGui
+-- Óòèëèòû ImGui
 local new = imgui.new
 
--- Ð”Ð°Ð½Ð½Ñ‹Ðµ ChangeLog
+-- Äàííûå ChangeLog
 local changelogEntries = {
     {
         version = "3.6 | Premium",
-        description = "- ÐžÐ±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¾ Ð¾ÐºÐ½Ð¾ Ð¸Ð½Ñ„Ð¾Ñ€Ð¼Ð°Ñ†Ð¸Ð¸. Ð”Ð¾Ð±Ð°Ð²Ð»ÐµÐ½Ñ‹ ÐºÐ»Ð¸ÐºÐ°Ð±ÐµÐ»ÑŒÐ½Ñ‹Ðµ ÑÑÑ‹Ð»ÐºÐ¸ Ð½Ð° blast.hk Ð¸ GitHub-Ñ€ÐµÐ¿Ð¾Ð·Ð¸Ñ‚Ð¾Ñ€Ð¸Ð¹ Ð² Ð¼ÐµÐ½ÑŽ 'Ð˜Ð½Ñ„Ð¾Ñ€Ð¼Ð°Ñ†Ð¸Ñ'.\n  - Ð˜ÑÐ¿Ñ€Ð°Ð²Ð»ÐµÐ½Ñ‹ Ð¿Ð¾Ñ‚ÐµÐ½Ñ†Ð¸Ð°Ð»ÑŒÐ½Ñ‹Ðµ Ð¿Ñ€Ð¾Ð±Ð»ÐµÐ¼Ñ‹ Ñ ÑÐ¾Ñ…Ñ€Ð°Ð½ÐµÐ½Ð¸ÐµÐ¼ Ð½Ð°ÑÑ‚Ñ€Ð¾ÐµÐº Ð²Ð¾ Ð²ÐºÐ»Ð°Ð´ÐºÐµ 'ÐÐ°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸'.\n -Ð£Ð»ÑƒÑ‡ÑˆÐµÐ½Ð°Ñ Ð¾Ð¿Ñ‚Ð¸Ð¼Ð¸Ð·Ð°Ñ†Ð¸Ñ ÑÐºÑ€Ð¸Ð¿Ñ‚Ð°. \n - Ð£Ð´Ð°Ð»ÐµÐ½Ñ‹ CEF-ÑƒÐ²ÐµÐ´Ð¾Ð¼Ð»ÐµÐ½Ð¸Ñ ÐÑ€Ð¸Ð·Ð¾Ð½Ñ‹."
+        description = "- Îáíîâëåíî îêíî èíôîðìàöèè. Äîáàâëåíû êëèêàáåëüíûå ññûëêè íà blast.hk è GitHub-ðåïîçèòîðèé â ìåíþ 'Èíôîðìàöèÿ'.\n  - Èñïðàâëåíû ïîòåíöèàëüíûå ïðîáëåìû ñ ñîõðàíåíèåì íàñòðîåê âî âêëàäêå 'Íàñòðîéêè'.\n -Óëó÷øåíàÿ îïòèìèçàöèÿ ñêðèïòà. \n - Óäàëåíû CEF-óâåäîìëåíèÿ Àðèçîíû."
     },
     {
         version = "3.5 | Premium",
-        description = "  - Ð”Ð¾Ð±Ð°Ð²Ð»ÐµÐ½Ð° ÐºÐ½Ð¾Ð¿ÐºÐ° ÑÐ±Ñ€Ð¾ÑÐ° Ð²ÑÐµÑ… Ð½Ð°ÑÑ‚Ñ€Ð¾ÐµÐº Ð² Ð¼ÐµÐ½ÑŽ 'ÐÐ°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸'.\n  - Ð¢ÐµÐ¿ÐµÑ€ÑŒ Ð²ÐµÑ€ÑÐ¸Ñ ÑÐºÑ€Ð¸Ð¿Ñ‚Ð° Ð¾Ñ‚Ð¾Ð±Ñ€Ð°Ð¶Ð°ÐµÑ‚ÑÑ Ð² Ð·Ð°Ð³Ð¾Ð»Ð¾Ð²ÐºÐµ Ð¾ÐºÐ½Ð° ImGui.\n  - Ð£Ð»ÑƒÑ‡ÑˆÐµÐ½Ð° Ñ‡Ð¸Ñ‚Ð°ÐµÐ¼Ð¾ÑÑ‚ÑŒ ChangeLog: Ð´Ð¾Ð±Ð°Ð²Ð»ÐµÐ½Ñ‹ Ð¾Ñ‚ÑÑ‚ÑƒÐ¿Ñ‹ Ð´Ð»Ñ Ð¿ÑƒÐ½ÐºÑ‚Ð¾Ð².\n  - ÐžÐ¿Ñ‚Ð¸Ð¼Ð¸Ð·Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð° Ð¿Ñ€Ð¾Ð¸Ð·Ð²Ð¾Ð´Ð¸Ñ‚ÐµÐ»ÑŒÐ½Ð¾ÑÑ‚ÑŒ: Ð¼Ð¸Ð½Ð¸Ð¼Ð¸Ð·Ð¸Ñ€Ð¾Ð²Ð°Ð½Ñ‹ Ð²Ñ‹Ð·Ð¾Ð²Ñ‹ u8 Ð² Ñ†Ð¸ÐºÐ»Ð¸Ñ‡ÐµÑÐºÐ¸Ñ… Ñ„ÑƒÐ½ÐºÑ†Ð¸ÑÑ…."
+        description = "  - Äîáàâëåíà êíîïêà ñáðîñà âñåõ íàñòðîåê â ìåíþ 'Íàñòðîéêè'.\n  - Òåïåðü âåðñèÿ ñêðèïòà îòîáðàæàåòñÿ â çàãîëîâêå îêíà ImGui.\n  - Óëó÷øåíà ÷èòàåìîñòü ChangeLog: äîáàâëåíû îòñòóïû äëÿ ïóíêòîâ.\n  - Îïòèìèçèðîâàíà ïðîèçâîäèòåëüíîñòü: ìèíèìèçèðîâàíû âûçîâû u8 â öèêëè÷åñêèõ ôóíêöèÿõ."
     },
     {
         version = "3.4 | Premium",
-        description = "  - ÐžÐ±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¾ Ð¼ÐµÐ½ÑŽ Ð½Ð°ÑÑ‚Ñ€Ð¾ÐµÐº: Ñ‡ÐµÐºÐ±Ð¾ÐºÑÑ‹ Ñ€Ð°ÑÐ¿Ñ€ÐµÐ´ÐµÐ»ÐµÐ½Ñ‹ Ð¿Ð¾ ÐºÐ°Ñ‚ÐµÐ³Ð¾Ñ€Ð¸ÑÐ¼ (Ð”Ð¸Ð°Ð»Ð¾Ð³Ð¸, Ð¤Ð»ÑƒÐ´, ÐžÐ±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ñ, Ð›Ð¾Ð³Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð¸Ðµ).\n  - Ð”Ð¾Ð±Ð°Ð²Ð»ÐµÐ½Ð° Ð²Ð¾Ð·Ð¼Ð¾Ð¶Ð½Ð¾ÑÑ‚ÑŒ Ð¾Ñ‚ÐºÐ»ÑŽÑ‡Ð¸Ñ‚ÑŒ Ð»Ð¾Ð³Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð¸Ðµ ÐºÐ°Ð¶Ð´Ð¾Ð³Ð¾ Ð´ÐµÐ¹ÑÑ‚Ð²Ð¸Ñ (ÐºÑ€Ð¸Ñ‚Ð¸Ñ‡ÐµÑÐºÐ¸Ðµ Ð»Ð¾Ð³Ð¸ Ð¾ÑÑ‚Ð°ÑŽÑ‚ÑÑ).\n  - Ð”Ð¾Ð±Ð°Ð²Ð»ÐµÐ½Ð° Ð¿Ð¾Ð´Ð´ÐµÑ€Ð¶ÐºÐ° Ð¿Ñ€Ð¾Ñ„Ð¸Ð»ÐµÐ¹ Ð½Ð°ÑÑ‚Ñ€Ð¾ÐµÐº: Ñ‚ÐµÐ¿ÐµÑ€ÑŒ Ð¼Ð¾Ð¶Ð½Ð¾ ÑÐ¾Ñ…Ñ€Ð°Ð½ÑÑ‚ÑŒ Ð¸ Ð·Ð°Ð³Ñ€ÑƒÐ¶Ð°Ñ‚ÑŒ Ð´Ð¾ Ñ‚Ñ€Ñ‘Ñ… Ð¿Ñ€Ð¾Ñ„Ð¸Ð»ÐµÐ¹.\n  - Ð”Ð¾Ð±Ð°Ð²Ð»ÐµÐ½Ð¾ Ð°Ð²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ñ‡ÐµÑÐºÐ¾Ðµ Ð»Ð¾Ð³Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð¸Ðµ Ð¿Ñ€Ð¸Ð½ÑÑ‚Ñ‹Ñ… Ñ€ÐµÐ¿Ð¾Ñ€Ñ‚Ð¾Ð² Ð² Ñ„Ð°Ð¹Ð» repflow_reports.log.\n  - Ð”Ð¾Ð±Ð°Ð²Ð»ÐµÐ½Ð° Ð½Ð¾Ð²Ð°Ñ Ð²ÐºÐ»Ð°Ð´ÐºÐ° 'Ð¡Ñ‚Ð°Ñ‚Ð¸ÑÑ‚Ð¸ÐºÐ°' Ñ Ð¸Ð½Ñ„Ð¾Ñ€Ð¼Ð°Ñ†Ð¸ÐµÐ¹ Ð¾ Ð²Ñ€ÐµÐ¼ÐµÐ½Ð¸ Ñ€Ð°Ð±Ð¾Ñ‚Ñ‹, Ð¿Ð¾Ð¿Ñ‹Ñ‚ÐºÐ°Ñ…, Ñ€ÐµÐ¿Ð¾Ñ€Ñ‚Ð°Ñ… Ð¸ Ñ„Ð»ÑƒÐ´Ðµ.\n  - Ð”Ð¾Ð±Ð°Ð²Ð»ÐµÐ½Ð° ÐºÐ¾Ð¼Ð°Ð½Ð´Ð° /update Ð´Ð»Ñ Ñ€ÑƒÑ‡Ð½Ð¾Ð³Ð¾ Ð·Ð°Ð¿ÑƒÑÐºÐ° Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ñ ÑÐºÑ€Ð¸Ð¿Ñ‚Ð° (Ð´Ð¾ÑÑ‚ÑƒÐ¿Ð½Ð° Ð¿Ð¾ÑÐ»Ðµ Ð¿Ñ€Ð¾Ð²ÐµÑ€ÐºÐ¸ Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ð¹)."
+        description = "  - Îáíîâëåíî ìåíþ íàñòðîåê: ÷åêáîêñû ðàñïðåäåëåíû ïî êàòåãîðèÿì (Äèàëîãè, Ôëóä, Îáíîâëåíèÿ, Ëîãèðîâàíèå).\n  - Äîáàâëåíà âîçìîæíîñòü îòêëþ÷èòü ëîãèðîâàíèå êàæäîãî äåéñòâèÿ (êðèòè÷åñêèå ëîãè îñòàþòñÿ).\n  - Äîáàâëåíà ïîääåðæêà ïðîôèëåé íàñòðîåê: òåïåðü ìîæíî ñîõðàíÿòü è çàãðóæàòü äî òð¸õ ïðîôèëåé.\n  - Äîáàâëåíî àâòîìàòè÷åñêîå ëîãèðîâàíèå ïðèíÿòûõ ðåïîðòîâ â ôàéë repflow_reports.log.\n  - Äîáàâëåíà íîâàÿ âêëàäêà 'Ñòàòèñòèêà' ñ èíôîðìàöèåé î âðåìåíè ðàáîòû, ïîïûòêàõ, ðåïîðòàõ è ôëóäå.\n  - Äîáàâëåíà êîìàíäà /update äëÿ ðó÷íîãî çàïóñêà îáíîâëåíèÿ ñêðèïòà (äîñòóïíà ïîñëå ïðîâåðêè îáíîâëåíèé)."
     },
 }
 
--- ÐŸÐµÑ€ÐµÐ¼ÐµÐ½Ð½Ñ‹Ðµ Ð´Ð»Ñ Ð°Ð²Ñ‚Ð¾-Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ð¹
-local update_state = false        -- Ð•ÑÐ»Ð¸ true, Ð½Ð°Ñ‡Ð½Ñ‘Ñ‚ÑÑ Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ðµ
-local update_found = false        -- Ð•ÑÐ»Ð¸ true, Ð´Ð¾ÑÑ‚ÑƒÐ¿Ð½Ð° ÐºÐ¾Ð¼Ð°Ð½Ð´Ð° /update
-local script_vers = 3.6           -- Ð¢ÐµÐºÑƒÑ‰Ð°Ñ Ð²ÐµÑ€ÑÐ¸Ñ ÑÐºÑ€Ð¸Ð¿Ñ‚Ð° (Ñ‡Ð¸ÑÐ»Ð¾Ð²Ð°Ñ)
-local script_vers_text = "3.6"    -- Ð¢ÐµÐºÑƒÑ‰Ð°Ñ Ð²ÐµÑ€ÑÐ¸Ñ Ð´Ð»Ñ Ð¾Ñ‚Ð¾Ð±Ñ€Ð°Ð¶ÐµÐ½Ð¸Ñ Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»ÑŽ
+-- Ïåðåìåííûå äëÿ àâòî-îáíîâëåíèé
+local update_state = false        -- Åñëè true, íà÷í¸òñÿ îáíîâëåíèå
+local update_found = false        -- Åñëè true, äîñòóïíà êîìàíäà /update
+local script_vers = 3.6           -- Òåêóùàÿ âåðñèÿ ñêðèïòà (÷èñëîâàÿ)
+local script_vers_text = "3.6"    -- Òåêóùàÿ âåðñèÿ äëÿ îòîáðàæåíèÿ ïîëüçîâàòåëþ
 
 local update_url = "https://raw.githubusercontent.com/Zorahm/repflow/main/update.ini"
 local update_path = getWorkingDirectory() .. "/update.ini"
@@ -57,26 +57,26 @@ function check_update()
             local updateIni = inicfg.load(nil, update_path)
             if updateIni and updateIni.info and updateIni.info.vers then
                 if tonumber(updateIni.info.vers) > script_vers then
-                    sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Ð˜Ð¼ÐµÐµÑ‚ÑÑ {32CD32}Ð½Ð¾Ð²Ð°Ñ {FFFFFF}Ð²ÐµÑ€ÑÐ¸Ñ ÑÐºÑ€Ð¸Ð¿Ñ‚Ð°. Ð’ÐµÑ€ÑÐ¸Ñ: {32CD32}" .. updateIni.info.vers_text .. ". {FFFFFF}Ð’Ð²ÐµÐ´Ð¸Ñ‚Ðµ /update, Ñ‡Ñ‚Ð¾Ð±Ñ‹ Ð¾Ð±Ð½Ð¾Ð²Ð¸Ñ‚ÑŒ.", -1)
-                    update_found = true -- ÐžÐ±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½Ð¾
-                    logToFile("ÐÐ°Ð¹Ð´ÐµÐ½Ð° Ð½Ð¾Ð²Ð°Ñ Ð²ÐµÑ€ÑÐ¸Ñ: " .. updateIni.info.vers_text)
+                    sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Èìååòñÿ {32CD32}íîâàÿ {FFFFFF}âåðñèÿ ñêðèïòà. Âåðñèÿ: {32CD32}" .. updateIni.info.vers_text .. ". {FFFFFF}Ââåäèòå /update, ÷òîáû îáíîâèòü.", -1)
+                    update_found = true -- Îáíîâëåíèå íàéäåíî
+                    logToFile("Íàéäåíà íîâàÿ âåðñèÿ: " .. updateIni.info.vers_text)
                 else
-                    sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Ð£ Ð²Ð°Ñ Ð¿Ð¾ÑÐ»ÐµÐ´Ð½ÑÑ Ð²ÐµÑ€ÑÐ¸Ñ ÑÐºÑ€Ð¸Ð¿Ñ‚Ð°: " .. script_vers_text, -1)
-                    logToFile("Ð’ÐµÑ€ÑÐ¸Ñ Ð°ÐºÑ‚ÑƒÐ°Ð»ÑŒÐ½Ð°: " .. script_vers_text)
+                    sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Ó âàñ ïîñëåäíÿÿ âåðñèÿ ñêðèïòà: " .. script_vers_text, -1)
+                    logToFile("Âåðñèÿ àêòóàëüíà: " .. script_vers_text)
                 end
             else
-                sampAddChatMessage(CONFIG.tag .. "{FF0000}ÐžÑˆÐ¸Ð±ÐºÐ°: ÐÐµ ÑƒÐ´Ð°Ð»Ð¾ÑÑŒ Ð·Ð°Ð³Ñ€ÑƒÐ·Ð¸Ñ‚ÑŒ Ð¸Ð½Ñ„Ð¾Ñ€Ð¼Ð°Ñ†Ð¸ÑŽ Ð¾Ð± Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ð¸.", -1)
-                logToFile("ÐžÑˆÐ¸Ð±ÐºÐ° Ð·Ð°Ð³Ñ€ÑƒÐ·ÐºÐ¸ update.ini")
+                sampAddChatMessage(CONFIG.tag .. "{FF0000}Îøèáêà: Íå óäàëîñü çàãðóçèòü èíôîðìàöèþ îá îáíîâëåíèè.", -1)
+                logToFile("Îøèáêà çàãðóçêè update.ini")
             end
             os.remove(update_path)
         elseif status == dlstatus.STATUS_DOWNLOADERROR then
-            sampAddChatMessage(CONFIG.tag .. "{FF0000}ÐžÑˆÐ¸Ð±ÐºÐ°: ÐÐµ ÑƒÐ´Ð°Ð»Ð¾ÑÑŒ Ð¿Ñ€Ð¾Ð²ÐµÑ€Ð¸Ñ‚ÑŒ Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ñ.", -1)
-            logToFile("ÐžÑˆÐ¸Ð±ÐºÐ° Ð¿Ñ€Ð¾Ð²ÐµÑ€ÐºÐ¸ Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ð¹: download error")
+            sampAddChatMessage(CONFIG.tag .. "{FF0000}Îøèáêà: Íå óäàëîñü ïðîâåðèòü îáíîâëåíèÿ.", -1)
+            logToFile("Îøèáêà ïðîâåðêè îáíîâëåíèé: download error")
         end
     end)
 end
 
--- Ð“Ð»Ð¾Ð±Ð°Ð»ÑŒÐ½Ñ‹Ðµ ÑÐ¾ÑÑ‚Ð¾ÑÐ½Ð¸Ñ
+-- Ãëîáàëüíûå ñîñòîÿíèÿ
 local STATE = {
     keyBind = CONFIG.defaultKeyBind,
     keyBindName = CONFIG.defaultKeyBindName,
@@ -99,7 +99,7 @@ local STATE = {
     floodCount = 0,
 }
 
--- ÐÐ°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸ Ð¸Ð½Ñ‚ÐµÑ€Ñ„ÐµÐ¹ÑÐ° Ð¸ Ð¿Ð¾Ð²ÐµÐ´ÐµÐ½Ð¸Ñ
+-- Íàñòðîéêè èíòåðôåéñà è ïîâåäåíèÿ
 local SETTINGS = {
     otInterval = new.int(10),
     dialogTimeout = new.int(600),
@@ -121,99 +121,99 @@ local SETTINGS = {
     useFloodPause = new.bool(true),
     autoUpdateEnabled = new.bool(true),
     logActionsEnabled = new.bool(true),
-    selectedProfile = new.int(0), -- Ð¢ÐµÐºÑƒÑ‰Ð¸Ð¹ Ð²Ñ‹Ð±Ñ€Ð°Ð½Ð½Ñ‹Ð¹ Ð¿Ñ€Ð¾Ñ„Ð¸Ð»ÑŒ (0 = ÐŸÑ€Ð¾Ñ„Ð¸Ð»ÑŒ 1, 1 = ÐŸÑ€Ð¾Ñ„Ð¸Ð»ÑŒ 2, 2 = ÐŸÑ€Ð¾Ñ„Ð¸Ð»ÑŒ 3)
+    selectedProfile = new.int(0), -- Òåêóùèé âûáðàííûé ïðîôèëü (0 = Ïðîôèëü 1, 1 = Ïðîôèëü 2, 2 = Ïðîôèëü 3)
 }
 
--- ÐŸÑ€ÐµÐ´Ð¾Ð¿Ñ€ÐµÐ´ÐµÐ»Ñ‘Ð½Ð½Ñ‹Ðµ Ñ†Ð²ÐµÑ‚Ð¾Ð²Ñ‹Ðµ Ñ‚ÐµÐ¼Ñ‹
+-- Ïðåäîïðåäåë¸ííûå öâåòîâûå òåìû
 local COLOR_THEMES = {
     {
-        name = "ÐšÐ¾ÑÐ¼Ð¾Ñ",
-        leftPanel = imgui.ImVec4(10 / 255, 15 / 255, 30 / 255, 1.0),    -- Ð“Ð»ÑƒÐ±Ð¾ÐºÐ¸Ð¹ Ñ‚Ñ‘Ð¼Ð½Ð¾-ÑÐ¸Ð½Ð¸Ð¹
-        rightPanel = imgui.ImVec4(15 / 255, 20 / 255, 40 / 255, 1.0),   -- Ð§ÑƒÑ‚ÑŒ ÑÐ²ÐµÑ‚Ð»ÐµÐµ ÑÐ¸Ð½Ð¸Ð¹
-        childPanel = imgui.ImVec4(5 / 255, 10 / 255, 25 / 255, 1.0),    -- Ð•Ñ‰Ñ‘ Ñ‚ÐµÐ¼Ð½ÐµÐµ Ð´Ð»Ñ ÐºÐ¾Ð½Ñ‚Ñ€Ð°ÑÑ‚Ð°
-        hover = imgui.ImVec4(50 / 255, 60 / 255, 100 / 255, 1.0),       -- Ð›Ñ‘Ð³ÐºÐ¸Ð¹ Ð³Ð¾Ð»ÑƒÐ±Ð¾Ð¹ Ð´Ð»Ñ Ð°ÐºÑ†ÐµÐ½Ñ‚Ð°
-        button = imgui.ImVec4(30 / 255, 40 / 255, 80 / 255, 1.0),       -- Ð¦Ð²ÐµÑ‚ ÐºÐ½Ð¾Ð¿Ð¾Ðº
-        buttonHovered = imgui.ImVec4(50 / 255, 60 / 255, 100 / 255, 1.0), -- Ð¦Ð²ÐµÑ‚ ÐºÐ½Ð¾Ð¿Ð¾Ðº Ð¿Ñ€Ð¸ Ð½Ð°Ð²ÐµÐ´ÐµÐ½Ð¸Ð¸
-        buttonActive = imgui.ImVec4(70 / 255, 80 / 255, 120 / 255, 1.0), -- Ð¦Ð²ÐµÑ‚ ÐºÐ½Ð¾Ð¿Ð¾Ðº Ð¿Ñ€Ð¸ Ð½Ð°Ð¶Ð°Ñ‚Ð¸Ð¸
-        checkMark = imgui.ImVec4(150 / 255, 200 / 255, 255 / 255, 1.0), -- Ð¦Ð²ÐµÑ‚ Ð³Ð°Ð»Ð¾Ñ‡ÐºÐ¸ Ð² Ñ‡ÐµÐºÐ±Ð¾ÐºÑÐµ
-        frameBg = imgui.ImVec4(20 / 255, 25 / 255, 50 / 255, 1.0),      -- Ð¤Ð¾Ð½ ÐºÐ¾Ð¼Ð±Ð¾Ð±Ð¾ÐºÑÐ° Ð¸ Ñ‚ÐµÐºÑÑ‚Ð¾Ð²Ñ‹Ñ… Ð¿Ð¾Ð»ÐµÐ¹
-        frameBgHovered = imgui.ImVec4(40 / 255, 45 / 255, 70 / 255, 1.0), -- Ð¤Ð¾Ð½ Ð¿Ñ€Ð¸ Ð½Ð°Ð²ÐµÐ´ÐµÐ½Ð¸Ð¸
-        frameBgActive = imgui.ImVec4(60 / 255, 65 / 255, 90 / 255, 1.0), -- Ð¤Ð¾Ð½ Ð¿Ñ€Ð¸ Ð°ÐºÑ‚Ð¸Ð²Ð°Ñ†Ð¸Ð¸
-        text = imgui.ImVec4(200 / 255, 220 / 255, 255 / 255, 1.0),      -- Ð¦Ð²ÐµÑ‚ Ñ‚ÐµÐºÑÑ‚Ð°
+        name = "Êîñìîñ",
+        leftPanel = imgui.ImVec4(10 / 255, 15 / 255, 30 / 255, 1.0),    -- Ãëóáîêèé ò¸ìíî-ñèíèé
+        rightPanel = imgui.ImVec4(15 / 255, 20 / 255, 40 / 255, 1.0),   -- ×óòü ñâåòëåå ñèíèé
+        childPanel = imgui.ImVec4(5 / 255, 10 / 255, 25 / 255, 1.0),    -- Åù¸ òåìíåå äëÿ êîíòðàñòà
+        hover = imgui.ImVec4(50 / 255, 60 / 255, 100 / 255, 1.0),       -- Ë¸ãêèé ãîëóáîé äëÿ àêöåíòà
+        button = imgui.ImVec4(30 / 255, 40 / 255, 80 / 255, 1.0),       -- Öâåò êíîïîê
+        buttonHovered = imgui.ImVec4(50 / 255, 60 / 255, 100 / 255, 1.0), -- Öâåò êíîïîê ïðè íàâåäåíèè
+        buttonActive = imgui.ImVec4(70 / 255, 80 / 255, 120 / 255, 1.0), -- Öâåò êíîïîê ïðè íàæàòèè
+        checkMark = imgui.ImVec4(150 / 255, 200 / 255, 255 / 255, 1.0), -- Öâåò ãàëî÷êè â ÷åêáîêñå
+        frameBg = imgui.ImVec4(20 / 255, 25 / 255, 50 / 255, 1.0),      -- Ôîí êîìáîáîêñà è òåêñòîâûõ ïîëåé
+        frameBgHovered = imgui.ImVec4(40 / 255, 45 / 255, 70 / 255, 1.0), -- Ôîí ïðè íàâåäåíèè
+        frameBgActive = imgui.ImVec4(60 / 255, 65 / 255, 90 / 255, 1.0), -- Ôîí ïðè àêòèâàöèè
+        text = imgui.ImVec4(200 / 255, 220 / 255, 255 / 255, 1.0),      -- Öâåò òåêñòà
     },
     {
-        name = "Ð—Ð°ÐºÐ°Ñ‚",
-        leftPanel = imgui.ImVec4(50 / 255, 20 / 255, 10 / 255, 1.0),    -- Ð¢Ñ‘Ð¼Ð½Ñ‹Ð¹ Ð±Ð¾Ñ€Ð´Ð¾Ð²Ñ‹Ð¹
-        rightPanel = imgui.ImVec4(70 / 255, 30 / 255, 20 / 255, 1.0),   -- Ð¢Ñ‘Ð¿Ð»Ñ‹Ð¹ ÐºÑ€Ð°ÑÐ½Ð¾-Ð¾Ñ€Ð°Ð½Ð¶ÐµÐ²Ñ‹Ð¹
-        childPanel = imgui.ImVec4(40 / 255, 15 / 255, 5 / 255, 1.0),    -- Ð“Ð»ÑƒÐ±Ð¾ÐºÐ¸Ð¹ Ñ‚Ñ‘Ð¼Ð½Ð¾-ÐºÑ€Ð°ÑÐ½Ñ‹Ð¹
-        hover = imgui.ImVec4(120 / 255, 60 / 255, 40 / 255, 1.0),       -- Ð¯Ñ€ÐºÐ¸Ð¹ Ð¾Ñ€Ð°Ð½Ð¶ÐµÐ²Ñ‹Ð¹ Ð´Ð»Ñ Ð²Ñ‹Ð´ÐµÐ»ÐµÐ½Ð¸Ñ
-        button = imgui.ImVec4(100 / 255, 40 / 255, 30 / 255, 1.0),      -- Ð¦Ð²ÐµÑ‚ ÐºÐ½Ð¾Ð¿Ð¾Ðº
-        buttonHovered = imgui.ImVec4(120 / 255, 60 / 255, 40 / 255, 1.0), -- Ð¦Ð²ÐµÑ‚ ÐºÐ½Ð¾Ð¿Ð¾Ðº Ð¿Ñ€Ð¸ Ð½Ð°Ð²ÐµÐ´ÐµÐ½Ð¸Ð¸
-        buttonActive = imgui.ImVec4(140 / 255, 80 / 255, 50 / 255, 1.0), -- Ð¦Ð²ÐµÑ‚ ÐºÐ½Ð¾Ð¿Ð¾Ðº Ð¿Ñ€Ð¸ Ð½Ð°Ð¶Ð°Ñ‚Ð¸Ð¸
-        checkMark = imgui.ImVec4(255 / 255, 150 / 255, 100 / 255, 1.0), -- Ð¦Ð²ÐµÑ‚ Ð³Ð°Ð»Ð¾Ñ‡ÐºÐ¸ Ð² Ñ‡ÐµÐºÐ±Ð¾ÐºÑÐµ
-        frameBg = imgui.ImVec4(80 / 255, 30 / 255, 20 / 255, 1.0),      -- Ð¤Ð¾Ð½ ÐºÐ¾Ð¼Ð±Ð¾Ð±Ð¾ÐºÑÐ° Ð¸ Ñ‚ÐµÐºÑÑ‚Ð¾Ð²Ñ‹Ñ… Ð¿Ð¾Ð»ÐµÐ¹
-        frameBgHovered = imgui.ImVec4(100 / 255, 50 / 255, 30 / 255, 1.0), -- Ð¤Ð¾Ð½ Ð¿Ñ€Ð¸ Ð½Ð°Ð²ÐµÐ´ÐµÐ½Ð¸Ð¸
-        frameBgActive = imgui.ImVec4(120 / 255, 70 / 255, 40 / 255, 1.0), -- Ð¤Ð¾Ð½ Ð¿Ñ€Ð¸ Ð°ÐºÑ‚Ð¸Ð²Ð°Ñ†Ð¸Ð¸
-        text = imgui.ImVec4(255 / 255, 200 / 255, 180 / 255, 1.0),      -- Ð¦Ð²ÐµÑ‚ Ñ‚ÐµÐºÑÑ‚Ð°
+        name = "Çàêàò",
+        leftPanel = imgui.ImVec4(50 / 255, 20 / 255, 10 / 255, 1.0),    -- Ò¸ìíûé áîðäîâûé
+        rightPanel = imgui.ImVec4(70 / 255, 30 / 255, 20 / 255, 1.0),   -- Ò¸ïëûé êðàñíî-îðàíæåâûé
+        childPanel = imgui.ImVec4(40 / 255, 15 / 255, 5 / 255, 1.0),    -- Ãëóáîêèé ò¸ìíî-êðàñíûé
+        hover = imgui.ImVec4(120 / 255, 60 / 255, 40 / 255, 1.0),       -- ßðêèé îðàíæåâûé äëÿ âûäåëåíèÿ
+        button = imgui.ImVec4(100 / 255, 40 / 255, 30 / 255, 1.0),      -- Öâåò êíîïîê
+        buttonHovered = imgui.ImVec4(120 / 255, 60 / 255, 40 / 255, 1.0), -- Öâåò êíîïîê ïðè íàâåäåíèè
+        buttonActive = imgui.ImVec4(140 / 255, 80 / 255, 50 / 255, 1.0), -- Öâåò êíîïîê ïðè íàæàòèè
+        checkMark = imgui.ImVec4(255 / 255, 150 / 255, 100 / 255, 1.0), -- Öâåò ãàëî÷êè â ÷åêáîêñå
+        frameBg = imgui.ImVec4(80 / 255, 30 / 255, 20 / 255, 1.0),      -- Ôîí êîìáîáîêñà è òåêñòîâûõ ïîëåé
+        frameBgHovered = imgui.ImVec4(100 / 255, 50 / 255, 30 / 255, 1.0), -- Ôîí ïðè íàâåäåíèè
+        frameBgActive = imgui.ImVec4(120 / 255, 70 / 255, 40 / 255, 1.0), -- Ôîí ïðè àêòèâàöèè
+        text = imgui.ImVec4(255 / 255, 200 / 255, 180 / 255, 1.0),      -- Öâåò òåêñòà
     },
     {
-        name = "ÐÐµÐ¾Ð½",
-        leftPanel = imgui.ImVec4(20 / 255, 40 / 255, 20 / 255, 1.0),    -- Ð¢Ñ‘Ð¼Ð½Ñ‹Ð¹ Ð·ÐµÐ»Ñ‘Ð½Ñ‹Ð¹ Ñ„Ð¾Ð½
-        rightPanel = imgui.ImVec4(30 / 255, 50 / 255, 30 / 255, 1.0),   -- Ð§ÑƒÑ‚ÑŒ ÑÐ²ÐµÑ‚Ð»ÐµÐµ Ð·ÐµÐ»Ñ‘Ð½Ñ‹Ð¹
-        childPanel = imgui.ImVec4(15 / 255, 30 / 255, 15 / 255, 1.0),   -- ÐšÐ¾Ð½Ñ‚Ñ€Ð°ÑÑ‚Ð½Ñ‹Ð¹ Ñ‚Ñ‘Ð¼Ð½Ñ‹Ð¹
-        hover = imgui.ImVec4(0 / 255, 200 / 255, 150 / 255, 1.0),       -- Ð¯Ñ€ÐºÐ¸Ð¹ Ñ†Ð¸Ð°Ð½ Ð´Ð»Ñ ÐºÐ½Ð¾Ð¿Ð¾Ðº
-        button = imgui.ImVec4(40 / 255, 80 / 255, 40 / 255, 1.0),       -- Ð¦Ð²ÐµÑ‚ ÐºÐ½Ð¾Ð¿Ð¾Ðº
-        buttonHovered = imgui.ImVec4(0 / 255, 200 / 255, 150 / 255, 1.0), -- Ð¦Ð²ÐµÑ‚ ÐºÐ½Ð¾Ð¿Ð¾Ðº Ð¿Ñ€Ð¸ Ð½Ð°Ð²ÐµÐ´ÐµÐ½Ð¸Ð¸
-        buttonActive = imgui.ImVec4(0 / 255, 220 / 255, 170 / 255, 1.0), -- Ð¦Ð²ÐµÑ‚ ÐºÐ½Ð¾Ð¿Ð¾Ðº Ð¿Ñ€Ð¸ Ð½Ð°Ð¶Ð°Ñ‚Ð¸Ð¸
-        checkMark = imgui.ImVec4(0 / 255, 255 / 255, 200 / 255, 1.0),   -- Ð¦Ð²ÐµÑ‚ Ð³Ð°Ð»Ð¾Ñ‡ÐºÐ¸ Ð² Ñ‡ÐµÐºÐ±Ð¾ÐºÑÐµ
-        frameBg = imgui.ImVec4(30 / 255, 60 / 255, 30 / 255, 1.0),      -- Ð¤Ð¾Ð½ ÐºÐ¾Ð¼Ð±Ð¾Ð±Ð¾ÐºÑÐ° Ð¸ Ñ‚ÐµÐºÑÑ‚Ð¾Ð²Ñ‹Ñ… Ð¿Ð¾Ð»ÐµÐ¹
-        frameBgHovered = imgui.ImVec4(40 / 255, 80 / 255, 40 / 255, 1.0), -- Ð¤Ð¾Ð½ Ð¿Ñ€Ð¸ Ð½Ð°Ð²ÐµÐ´ÐµÐ½Ð¸Ð¸
-        frameBgActive = imgui.ImVec4(50 / 255, 100 / 255, 50 / 255, 1.0), -- Ð¤Ð¾Ð½ Ð¿Ñ€Ð¸ Ð°ÐºÑ‚Ð¸Ð²Ð°Ñ†Ð¸Ð¸
-        text = imgui.ImVec4(180 / 255, 255 / 255, 220 / 255, 1.0),      -- Ð¦Ð²ÐµÑ‚ Ñ‚ÐµÐºÑÑ‚Ð°
+        name = "Íåîí",
+        leftPanel = imgui.ImVec4(20 / 255, 40 / 255, 20 / 255, 1.0),    -- Ò¸ìíûé çåë¸íûé ôîí
+        rightPanel = imgui.ImVec4(30 / 255, 50 / 255, 30 / 255, 1.0),   -- ×óòü ñâåòëåå çåë¸íûé
+        childPanel = imgui.ImVec4(15 / 255, 30 / 255, 15 / 255, 1.0),   -- Êîíòðàñòíûé ò¸ìíûé
+        hover = imgui.ImVec4(0 / 255, 200 / 255, 150 / 255, 1.0),       -- ßðêèé öèàí äëÿ êíîïîê
+        button = imgui.ImVec4(40 / 255, 80 / 255, 40 / 255, 1.0),       -- Öâåò êíîïîê
+        buttonHovered = imgui.ImVec4(0 / 255, 200 / 255, 150 / 255, 1.0), -- Öâåò êíîïîê ïðè íàâåäåíèè
+        buttonActive = imgui.ImVec4(0 / 255, 220 / 255, 170 / 255, 1.0), -- Öâåò êíîïîê ïðè íàæàòèè
+        checkMark = imgui.ImVec4(0 / 255, 255 / 255, 200 / 255, 1.0),   -- Öâåò ãàëî÷êè â ÷åêáîêñå
+        frameBg = imgui.ImVec4(30 / 255, 60 / 255, 30 / 255, 1.0),      -- Ôîí êîìáîáîêñà è òåêñòîâûõ ïîëåé
+        frameBgHovered = imgui.ImVec4(40 / 255, 80 / 255, 40 / 255, 1.0), -- Ôîí ïðè íàâåäåíèè
+        frameBgActive = imgui.ImVec4(50 / 255, 100 / 255, 50 / 255, 1.0), -- Ôîí ïðè àêòèâàöèè
+        text = imgui.ImVec4(180 / 255, 255 / 255, 220 / 255, 1.0),      -- Öâåò òåêñòà
     },
     {
-        name = "Ð›Ð°Ð²Ð°Ð½Ð´Ð°",
-        leftPanel = imgui.ImVec4(40 / 255, 30 / 255, 60 / 255, 1.0),    -- Ð¢Ñ‘Ð¼Ð½Ñ‹Ð¹ Ð»Ð°Ð²Ð°Ð½Ð´Ð¾Ð²Ñ‹Ð¹
-        rightPanel = imgui.ImVec4(50 / 255, 40 / 255, 80 / 255, 1.0),   -- ÐœÑÐ³ÐºÐ¸Ð¹ Ñ„Ð¸Ð¾Ð»ÐµÑ‚Ð¾Ð²Ñ‹Ð¹
-        childPanel = imgui.ImVec4(30 / 255, 20 / 255, 50 / 255, 1.0),   -- Ð¢Ñ‘Ð¼Ð½Ñ‹Ð¹ Ð´Ð»Ñ Ð¿Ð°Ð½ÐµÐ»ÐµÐ¹
-        hover = imgui.ImVec4(100 / 255, 80 / 255, 140 / 255, 1.0),      -- Ð¡Ð²ÐµÑ‚Ð»Ñ‹Ð¹ Ð»Ð°Ð²Ð°Ð½Ð´Ð¾Ð²Ñ‹Ð¹ Ð°ÐºÑ†ÐµÐ½Ñ‚
-        button = imgui.ImVec4(60 / 255, 50 / 255, 100 / 255, 1.0),      -- Ð¦Ð²ÐµÑ‚ ÐºÐ½Ð¾Ð¿Ð¾Ðº
-        buttonHovered = imgui.ImVec4(100 / 255, 80 / 255, 140 / 255, 1.0), -- Ð¦Ð²ÐµÑ‚ ÐºÐ½Ð¾Ð¿Ð¾Ðº Ð¿Ñ€Ð¸ Ð½Ð°Ð²ÐµÐ´ÐµÐ½Ð¸Ð¸
-        buttonActive = imgui.ImVec4(120 / 255, 100 / 255, 160 / 255, 1.0), -- Ð¦Ð²ÐµÑ‚ ÐºÐ½Ð¾Ð¿Ð¾Ðº Ð¿Ñ€Ð¸ Ð½Ð°Ð¶Ð°Ñ‚Ð¸Ð¸
-        checkMark = imgui.ImVec4(180 / 255, 150 / 255, 220 / 255, 1.0), -- Ð¦Ð²ÐµÑ‚ Ð³Ð°Ð»Ð¾Ñ‡ÐºÐ¸ Ð² Ñ‡ÐµÐºÐ±Ð¾ÐºÑÐµ
-        frameBg = imgui.ImVec4(40 / 255, 30 / 255, 70 / 255, 1.0),      -- Ð¤Ð¾Ð½ ÐºÐ¾Ð¼Ð±Ð¾Ð±Ð¾ÐºÑÐ° Ð¸ Ñ‚ÐµÐºÑÑ‚Ð¾Ð²Ñ‹Ñ… Ð¿Ð¾Ð»ÐµÐ¹
-        frameBgHovered = imgui.ImVec4(60 / 255, 50 / 255, 90 / 255, 1.0), -- Ð¤Ð¾Ð½ Ð¿Ñ€Ð¸ Ð½Ð°Ð²ÐµÐ´ÐµÐ½Ð¸Ð¸
-        frameBgActive = imgui.ImVec4(80 / 255, 70 / 255, 110 / 255, 1.0), -- Ð¤Ð¾Ð½ Ð¿Ñ€Ð¸ Ð°ÐºÑ‚Ð¸Ð²Ð°Ñ†Ð¸Ð¸
-        text = imgui.ImVec4(220 / 255, 200 / 255, 255 / 255, 1.0),      -- Ð¦Ð²ÐµÑ‚ Ñ‚ÐµÐºÑÑ‚Ð°
+        name = "Ëàâàíäà",
+        leftPanel = imgui.ImVec4(40 / 255, 30 / 255, 60 / 255, 1.0),    -- Ò¸ìíûé ëàâàíäîâûé
+        rightPanel = imgui.ImVec4(50 / 255, 40 / 255, 80 / 255, 1.0),   -- Ìÿãêèé ôèîëåòîâûé
+        childPanel = imgui.ImVec4(30 / 255, 20 / 255, 50 / 255, 1.0),   -- Ò¸ìíûé äëÿ ïàíåëåé
+        hover = imgui.ImVec4(100 / 255, 80 / 255, 140 / 255, 1.0),      -- Ñâåòëûé ëàâàíäîâûé àêöåíò
+        button = imgui.ImVec4(60 / 255, 50 / 255, 100 / 255, 1.0),      -- Öâåò êíîïîê
+        buttonHovered = imgui.ImVec4(100 / 255, 80 / 255, 140 / 255, 1.0), -- Öâåò êíîïîê ïðè íàâåäåíèè
+        buttonActive = imgui.ImVec4(120 / 255, 100 / 255, 160 / 255, 1.0), -- Öâåò êíîïîê ïðè íàæàòèè
+        checkMark = imgui.ImVec4(180 / 255, 150 / 255, 220 / 255, 1.0), -- Öâåò ãàëî÷êè â ÷åêáîêñå
+        frameBg = imgui.ImVec4(40 / 255, 30 / 255, 70 / 255, 1.0),      -- Ôîí êîìáîáîêñà è òåêñòîâûõ ïîëåé
+        frameBgHovered = imgui.ImVec4(60 / 255, 50 / 255, 90 / 255, 1.0), -- Ôîí ïðè íàâåäåíèè
+        frameBgActive = imgui.ImVec4(80 / 255, 70 / 255, 110 / 255, 1.0), -- Ôîí ïðè àêòèâàöèè
+        text = imgui.ImVec4(220 / 255, 200 / 255, 255 / 255, 1.0),      -- Öâåò òåêñòà
     },
     {
-        name = "Ð“Ñ€Ð°Ñ„Ð¸Ñ‚",
-        leftPanel = imgui.ImVec4(30 / 255, 30 / 255, 30 / 255, 1.0),    -- Ð¢Ñ‘Ð¼Ð½Ð¾-ÑÐµÑ€Ñ‹Ð¹
-        rightPanel = imgui.ImVec4(40 / 255, 40 / 255, 40 / 255, 1.0),   -- Ð¡Ñ€ÐµÐ´Ð½Ð¸Ð¹ ÑÐµÑ€Ñ‹Ð¹
-        childPanel = imgui.ImVec4(20 / 255, 20 / 255, 20 / 255, 1.0),   -- ÐžÑ‡ÐµÐ½ÑŒ Ñ‚Ñ‘Ð¼Ð½Ñ‹Ð¹ ÑÐµÑ€Ñ‹Ð¹
-        hover = imgui.ImVec4(80 / 255, 80 / 255, 80 / 255, 1.0),        -- Ð¡Ð²ÐµÑ‚Ð»Ð¾-ÑÐµÑ€Ñ‹Ð¹ Ð´Ð»Ñ ÐºÐ½Ð¾Ð¿Ð¾Ðº
-        button = imgui.ImVec4(50 / 255, 50 / 255, 50 / 255, 1.0),       -- Ð¦Ð²ÐµÑ‚ ÐºÐ½Ð¾Ð¿Ð¾Ðº
-        buttonHovered = imgui.ImVec4(80 / 255, 80 / 255, 80 / 255, 1.0), -- Ð¦Ð²ÐµÑ‚ ÐºÐ½Ð¾Ð¿Ð¾Ðº Ð¿Ñ€Ð¸ Ð½Ð°Ð²ÐµÐ´ÐµÐ½Ð¸Ð¸
-        buttonActive = imgui.ImVec4(100 / 255, 100 / 255, 100 / 255, 1.0), -- Ð¦Ð²ÐµÑ‚ ÐºÐ½Ð¾Ð¿Ð¾Ðº Ð¿Ñ€Ð¸ Ð½Ð°Ð¶Ð°Ñ‚Ð¸Ð¸
-        checkMark = imgui.ImVec4(180 / 255, 180 / 255, 180 / 255, 1.0), -- Ð¦Ð²ÐµÑ‚ Ð³Ð°Ð»Ð¾Ñ‡ÐºÐ¸ Ð² Ñ‡ÐµÐºÐ±Ð¾ÐºÑÐµ
-        frameBg = imgui.ImVec4(30 / 255, 30 / 255, 30 / 255, 1.0),      -- Ð¤Ð¾Ð½ ÐºÐ¾Ð¼Ð±Ð¾Ð±Ð¾ÐºÑÐ° Ð¸ Ñ‚ÐµÐºÑÑ‚Ð¾Ð²Ñ‹Ñ… Ð¿Ð¾Ð»ÐµÐ¹
-        frameBgHovered = imgui.ImVec4(50 / 255, 50 / 255, 50 / 255, 1.0), -- Ð¤Ð¾Ð½ Ð¿Ñ€Ð¸ Ð½Ð°Ð²ÐµÐ´ÐµÐ½Ð¸Ð¸
-        frameBgActive = imgui.ImVec4(70 / 255, 70 / 255, 70 / 255, 1.0), -- Ð¤Ð¾Ð½ Ð¿Ñ€Ð¸ Ð°ÐºÑ‚Ð¸Ð²Ð°Ñ†Ð¸Ð¸
-        text = imgui.ImVec4(200 / 255, 200 / 255, 200 / 255, 1.0),      -- Ð¦Ð²ÐµÑ‚ Ñ‚ÐµÐºÑÑ‚Ð°
+        name = "Ãðàôèò",
+        leftPanel = imgui.ImVec4(30 / 255, 30 / 255, 30 / 255, 1.0),    -- Ò¸ìíî-ñåðûé
+        rightPanel = imgui.ImVec4(40 / 255, 40 / 255, 40 / 255, 1.0),   -- Ñðåäíèé ñåðûé
+        childPanel = imgui.ImVec4(20 / 255, 20 / 255, 20 / 255, 1.0),   -- Î÷åíü ò¸ìíûé ñåðûé
+        hover = imgui.ImVec4(80 / 255, 80 / 255, 80 / 255, 1.0),        -- Ñâåòëî-ñåðûé äëÿ êíîïîê
+        button = imgui.ImVec4(50 / 255, 50 / 255, 50 / 255, 1.0),       -- Öâåò êíîïîê
+        buttonHovered = imgui.ImVec4(80 / 255, 80 / 255, 80 / 255, 1.0), -- Öâåò êíîïîê ïðè íàâåäåíèè
+        buttonActive = imgui.ImVec4(100 / 255, 100 / 255, 100 / 255, 1.0), -- Öâåò êíîïîê ïðè íàæàòèè
+        checkMark = imgui.ImVec4(180 / 255, 180 / 255, 180 / 255, 1.0), -- Öâåò ãàëî÷êè â ÷åêáîêñå
+        frameBg = imgui.ImVec4(30 / 255, 30 / 255, 30 / 255, 1.0),      -- Ôîí êîìáîáîêñà è òåêñòîâûõ ïîëåé
+        frameBgHovered = imgui.ImVec4(50 / 255, 50 / 255, 50 / 255, 1.0), -- Ôîí ïðè íàâåäåíèè
+        frameBgActive = imgui.ImVec4(70 / 255, 70 / 255, 70 / 255, 1.0), -- Ôîí ïðè àêòèâàöèè
+        text = imgui.ImVec4(200 / 255, 200 / 255, 200 / 255, 1.0),      -- Öâåò òåêñòà
     },
 }
 
--- Ð¢ÐµÐºÑƒÑ‰Ð°Ñ Ñ†Ð²ÐµÑ‚Ð¾Ð²Ð°Ñ ÑÑ…ÐµÐ¼Ð° (Ð¿Ð¾ ÑƒÐ¼Ð¾Ð»Ñ‡Ð°Ð½Ð¸ÑŽ - Ð¿ÐµÑ€Ð²Ð°Ñ Ñ‚ÐµÐ¼Ð°)
+-- Òåêóùàÿ öâåòîâàÿ ñõåìà (ïî óìîë÷àíèþ - ïåðâàÿ òåìà)
 local COLORS = COLOR_THEMES[1]
 
--- Ð Ð°Ð·Ñ€ÐµÑˆÐµÐ½Ð¸Ðµ ÑÐºÑ€Ð°Ð½Ð°
+-- Ðàçðåøåíèå ýêðàíà
 local sw, sh = getScreenResolution()
 
--- ÐšÐ¾Ð´Ð¸Ñ€Ð¾Ð²ÐºÐ°
+-- Êîäèðîâêà
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
--- ÐšÐ¾Ð½Ñ„Ð¸Ð³ÑƒÑ€Ð°Ñ†Ð¸Ñ Ð¿Ð¾ ÑƒÐ¼Ð¾Ð»Ñ‡Ð°Ð½Ð¸ÑŽ
+-- Êîíôèãóðàöèÿ ïî óìîë÷àíèþ
 local defaultConfig = {
     main = {
         keyBind = string.format("0x%X", CONFIG.defaultKeyBind),
@@ -229,7 +229,7 @@ local defaultConfig = {
         useFloodPause = true,
         autoUpdateEnabled = true,
         logActionsEnabled = true,
-        selectedProfile = 0, -- ÐŸÐ¾ ÑƒÐ¼Ð¾Ð»Ñ‡Ð°Ð½Ð¸ÑŽ ÐŸÑ€Ð¾Ñ„Ð¸Ð»ÑŒ 1
+        selectedProfile = 0, -- Ïî óìîë÷àíèþ Ïðîôèëü 1
     },
     widget = {
         posX = 400,
@@ -237,7 +237,7 @@ local defaultConfig = {
     }
 }
 
--- Ð—Ð°Ð³Ñ€ÑƒÐ·ÐºÐ° Ð¸ Ð¿Ñ€Ð¸Ð¼ÐµÐ½ÐµÐ½Ð¸Ðµ ÐºÐ¾Ð½Ñ„Ð¸Ð³ÑƒÑ€Ð°Ñ†Ð¸Ð¸
+-- Çàãðóçêà è ïðèìåíåíèå êîíôèãóðàöèè
 local ini = inicfg.load(defaultConfig, CONFIG.iniFilename)
 STATE.keyBind = tonumber(ini.main.keyBind) or CONFIG.defaultKeyBind
 STATE.keyBindName = ini.main.keyBindName or CONFIG.defaultKeyBindName
@@ -249,37 +249,37 @@ SETTINGS.dialogHandlerEnabled[0] = ini.main.dialogHandlerEnabled == true
 SETTINGS.autoStartEnabled[0] = ini.main.autoStartEnabled == true
 SETTINGS.hideFloodMsg[0] = ini.main.otklflud == true
 SETTINGS.selectedTheme[0] = tonumber(ini.main.selectedTheme) or 0
-COLORS = COLOR_THEMES[SETTINGS.selectedTheme[0] + 1] -- ÐŸÑ€Ð¸Ð¼ÐµÐ½ÑÐµÐ¼ Ð·Ð°Ð³Ñ€ÑƒÐ¶ÐµÐ½Ð½ÑƒÑŽ Ñ‚ÐµÐ¼Ñƒ
+COLORS = COLOR_THEMES[SETTINGS.selectedTheme[0] + 1] -- Ïðèìåíÿåì çàãðóæåííóþ òåìó
 SETTINGS.useFloodPause[0] = ini.main.useFloodPause == true
 SETTINGS.autoUpdateEnabled[0] = ini.main.autoUpdateEnabled == true
 SETTINGS.logActionsEnabled[0] = ini.main.logActionsEnabled == true
 SETTINGS.selectedProfile[0] = ini.main.selectedProfile or 0
 
--- ÐžÑÐ½Ð¾Ð²Ð½Ð¾Ð¹ Ñ†Ð¸ÐºÐ» ÑÐºÑ€Ð¸Ð¿Ñ‚Ð°
+-- Îñíîâíîé öèêë ñêðèïòà
 function main()
     if not isSampLoaded() or not isSampfuncsLoaded() then return end
     while not isSampAvailable() do wait(100) end
     sampRegisterChatCommand("arep", cmd_arep)
     sampRegisterChatCommand("update", cmd_update)
-    sampAddChatMessage(CONFIG.tag .. 'Ð¡ÐºÑ€Ð¸Ð¿Ñ‚ {00FF00}Ð·Ð°Ð³Ñ€ÑƒÐ¶ÐµÐ½.{FFFFFF} ÐÐºÑ‚Ð¸Ð²Ð°Ñ†Ð¸Ñ Ð¼ÐµÐ½ÑŽ: {00FF00}/arep', -1)
-    logToFile("Ð¡ÐºÑ€Ð¸Ð¿Ñ‚ Ð·Ð°Ð³Ñ€ÑƒÐ¶ÐµÐ½")
+    sampAddChatMessage(CONFIG.tag .. 'Ñêðèïò {00FF00}çàãðóæåí.{FFFFFF} Àêòèâàöèÿ ìåíþ: {00FF00}/arep', -1)
+    logToFile("Ñêðèïò çàãðóæåí")
 
-    -- Ð—Ð°Ð³Ñ€ÑƒÐ¶Ð°ÐµÐ¼ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸ Ð¸Ð· Ð²Ñ‹Ð±Ñ€Ð°Ð½Ð½Ð¾Ð³Ð¾ Ð¿Ñ€Ð¾Ñ„Ð¸Ð»Ñ
+    -- Çàãðóæàåì íàñòðîéêè èç âûáðàííîãî ïðîôèëÿ
     loadSettingsFromProfile()
 
-    -- ÐŸÑ€Ð¾Ð²ÐµÑ€ÐºÐ° Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ð¹ Ð¿Ñ€Ð¸ Ð·Ð°Ð¿ÑƒÑÐºÐµ, ÐµÑÐ»Ð¸ Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¾
+    -- Ïðîâåðêà îáíîâëåíèé ïðè çàïóñêå, åñëè âêëþ÷åíî
     if SETTINGS.autoUpdateEnabled[0] then
-        sampAddChatMessage(CONFIG.tag .. "ÐŸÑ€Ð¾Ð²ÐµÑ€ÐºÐ° Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ð¹...", -1)
+        sampAddChatMessage(CONFIG.tag .. "Ïðîâåðêà îáíîâëåíèé...", -1)
         check_update()
     else
-        sampAddChatMessage(CONFIG.tag .. "ÐÐ²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ñ‡ÐµÑÐºÐ°Ñ Ð¿Ñ€Ð¾Ð²ÐµÑ€ÐºÐ° Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ð¹ Ð¾Ñ‚ÐºÐ»ÑŽÑ‡ÐµÐ½Ð°", -1)
+        sampAddChatMessage(CONFIG.tag .. "Àâòîìàòè÷åñêàÿ ïðîâåðêà îáíîâëåíèé îòêëþ÷åíà", -1)
     end
 
-    local lastMoveCheck = 0 -- Ð”Ð»Ñ Ð¿Ñ€Ð¾Ð²ÐµÑ€ÐºÐ¸ Ð½Ð°Ð¶Ð°Ñ‚Ð¸Ñ Ð¿Ñ€Ð¾Ð±ÐµÐ»Ð°
-    local moveCheckInterval = 50 -- ÐŸÑ€Ð¾Ð²ÐµÑ€ÑÐµÐ¼ Ð¿Ñ€Ð¾Ð±ÐµÐ» Ñ€Ð°Ð· Ð² 50 Ð¼Ñ
+    local lastMoveCheck = 0 -- Äëÿ ïðîâåðêè íàæàòèÿ ïðîáåëà
+    local moveCheckInterval = 50 -- Ïðîâåðÿåì ïðîáåë ðàç â 50 ìñ
 
     while true do
-        wait(0) -- Ð£Ð¼ÐµÐ½ÑŒÑˆÐ°ÐµÐ¼ wait Ð´Ð»Ñ Ð±Ð¾Ð»ÐµÐµ Ð¿Ð»Ð°Ð²Ð½Ð¾Ð³Ð¾ Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ñ
+        wait(0) -- Óìåíüøàåì wait äëÿ áîëåå ïëàâíîãî îáíîâëåíèÿ
         checkPauseAndDisableAutoStart()
         checkAutoStart()
         imgui.Process = SETTINGS.mainWindowState[0] and not STATE.gameMinimized
@@ -287,12 +287,12 @@ function main()
         if update_state then
             downloadUrlToFile(script_url, script_path, function(id, status)
                 if status == dlstatus.STATUS_ENDDOWNLOADDATA then
-                    sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Ð¡ÐºÑ€Ð¸Ð¿Ñ‚ {32CD32}ÑƒÑÐ¿ÐµÑˆÐ½Ð¾ {FFFFFF}Ð¾Ð±Ð½Ð¾Ð²Ð»Ñ‘Ð½. ÐŸÐµÑ€ÐµÐ·Ð°Ð¿ÑƒÑÑ‚Ð¸Ñ‚Ðµ MoonLoader.", -1)
-                    logToFile("Ð¡ÐºÑ€Ð¸Ð¿Ñ‚ ÑƒÑÐ¿ÐµÑˆÐ½Ð¾ Ð¾Ð±Ð½Ð¾Ð²Ð»Ñ‘Ð½")
+                    sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Ñêðèïò {32CD32}óñïåøíî {FFFFFF}îáíîâë¸í. Ïåðåçàïóñòèòå MoonLoader.", -1)
+                    logToFile("Ñêðèïò óñïåøíî îáíîâë¸í")
                     thisScript():reload()
                 elseif status == dlstatus.STATUS_DOWNLOADERROR then
-                    sampAddChatMessage(CONFIG.tag .. "{FF0000}ÐžÑˆÐ¸Ð±ÐºÐ°: ÐÐµ ÑƒÐ´Ð°Ð»Ð¾ÑÑŒ ÑÐºÐ°Ñ‡Ð°Ñ‚ÑŒ Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ðµ.", -1)
-                    logToFile("ÐžÑˆÐ¸Ð±ÐºÐ° Ð¿Ñ€Ð¸ ÑÐºÐ°Ñ‡Ð¸Ð²Ð°Ð½Ð¸Ð¸ Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ñ")
+                    sampAddChatMessage(CONFIG.tag .. "{FF0000}Îøèáêà: Íå óäàëîñü ñêà÷àòü îáíîâëåíèå.", -1)
+                    logToFile("Îøèáêà ïðè ñêà÷èâàíèè îáíîâëåíèÿ")
                 end
             end)
             break
@@ -330,7 +330,7 @@ function main()
             if currentTime - STATE.lastOtTime >= interval then
                 STATE.reportAttempts = STATE.reportAttempts + 1
                 sampSendChat('/ot')
-                logToFile("ÐžÑ‚Ð¿Ñ€Ð°Ð²ÐºÐ° /ot, Ð¿Ð¾Ð¿Ñ‹Ñ‚ÐºÐ° #" .. STATE.reportAttempts)
+                logToFile("Îòïðàâêà /ot, ïîïûòêà #" .. STATE.reportAttempts)
                 STATE.lastOtTime = currentTime
             end
         else
@@ -339,7 +339,7 @@ function main()
     end
 end
 
--- Ð¡Ð±Ñ€Ð¾Ñ Ð²Ð²Ð¾Ð´Ð° ImGui
+-- Ñáðîñ ââîäà ImGui
 function resetIO()
     local io = imgui.GetIO()
     for i = 0, 511 do io.KeysDown[i] = false end
@@ -350,16 +350,16 @@ function resetIO()
     io.KeySuper = false
 end
 
--- ÐÐºÑ‚Ð¸Ð²Ð°Ñ†Ð¸Ñ Ñ€ÐµÐ¶Ð¸Ð¼Ð° Ð¿ÐµÑ€ÐµÐ¼ÐµÑ‰ÐµÐ½Ð¸Ñ Ð¾ÐºÐ½Ð°
+-- Àêòèâàöèÿ ðåæèìà ïåðåìåùåíèÿ îêíà
 function startMovingWindow()
     STATE.moveWidget = true
     showInfoWindow()
     sampToggleCursor(true)
     SETTINGS.mainWindowState[0] = false
-    sampAddChatMessage(CONFIG.tagInfo .. '{FFFF00}Ð ÐµÐ¶Ð¸Ð¼ Ð¿ÐµÑ€ÐµÐ¼ÐµÑ‰ÐµÐ½Ð¸Ñ Ð¾ÐºÐ½Ð° Ð°ÐºÑ‚Ð¸Ð²Ð¸Ñ€Ð¾Ð²Ð°Ð½. ÐÐ°Ð¶Ð¼Ð¸Ñ‚Ðµ "ÐŸÑ€Ð¾Ð±ÐµÐ»" Ð´Ð»Ñ Ð¿Ð¾Ð´Ñ‚Ð²ÐµÑ€Ð¶Ð´ÐµÐ½Ð¸Ñ.', -1)
+    sampAddChatMessage(CONFIG.tagInfo .. '{FFFF00}Ðåæèì ïåðåìåùåíèÿ îêíà àêòèâèðîâàí. Íàæìèòå "Ïðîáåë" äëÿ ïîäòâåðæäåíèÿ.', -1)
 end
 
--- Ð˜Ð½Ð¸Ñ†Ð¸Ð°Ð»Ð¸Ð·Ð°Ñ†Ð¸Ñ ImGui
+-- Èíèöèàëèçàöèÿ ImGui
 imgui.OnInitialize(function()
     imgui.GetIO().IniFilename = nil
     local config = imgui.ImFontConfig()
@@ -370,7 +370,7 @@ imgui.OnInitialize(function()
     decor()
 end)
 
--- ÐÐ°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ° ÑÑ‚Ð¸Ð»ÐµÐ¹ ImGui
+-- Íàñòðîéêà ñòèëåé ImGui
 function decor()
     imgui.SwitchContext()
     local style = imgui.GetStyle()
@@ -389,64 +389,67 @@ function decor()
     style.ButtonTextAlign = imgui.ImVec2(0.5, 0.5)
 end
 
--- ÐžÐ±Ñ€Ð°Ð±Ð¾Ñ‚ÐºÐ° ÑÐ¾Ð¾Ð±Ñ‰ÐµÐ½Ð¸Ð¹ ÑÐµÑ€Ð²ÐµÑ€Ð°
+-- Îáðàáîòêà ñîîáùåíèé ñåðâåðà
 function sampev.onServerMessage(color, text)
-    if text:find('%[(%W+)%] Ð¾Ñ‚ (%w+_%w+)%[(%d+)%]:') and STATE.active then
+    if text:find('%[(%W+)%] îò (%w+_%w+)%[(%d+)%]:') and STATE.active then
         sampSendChat('/ot')
     end
     return filterFloodMessage(text)
 end
 
--- ÐŸÐµÑ€ÐµÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ðµ ÑÐ¾ÑÑ‚Ð¾ÑÐ½Ð¸Ñ Ð°Ð²Ñ‚Ð¾Ð»Ð¾Ð²Ð»Ð¸
+-- Ïåðåêëþ÷åíèå ñîñòîÿíèÿ àâòîëîâëè
 function onToggleActive()
     STATE.active = not STATE.active
     STATE.manualDisable = not STATE.active
     SETTINGS.disableAutoStartOnToggle = not STATE.active
-    local status = STATE.active and '{00FF00}Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð°' or '{FF0000}Ð²Ñ‹ÐºÐ»ÑŽÑ‡ÐµÐ½Ð°'
-    local statusArz = STATE.active and 'Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð°' or 'Ð²Ñ‹ÐºÐ»ÑŽÑ‡ÐµÐ½Ð°'
-    logToFile("Ð›Ð¾Ð²Ð»Ñ " .. statusArz)
+    local status = STATE.active and '{00FF00}âêëþ÷åíà' or '{FF0000}âûêëþ÷åíà'
+    local statusArz = STATE.active and 'âêëþ÷åíà' or 'âûêëþ÷åíà'
+    logToFile("Ëîâëÿ " .. statusArz)
 end
 
--- Ð¡Ð¾Ñ…Ñ€Ð°Ð½ÐµÐ½Ð¸Ðµ Ð½Ð°ÑÑ‚Ñ€Ð¾ÐµÐº Ð¾ÐºÐ½Ð°
+-- Ñîõðàíåíèå íàñòðîåê îêíà
 function saveWindowSettings()
     ini.widget.posX = ini.widget.posX or 400
     ini.widget.posY = ini.widget.posY or 400
     inicfg.save(ini, CONFIG.iniFilename)
-    sampAddChatMessage(CONFIG.tagInfo .. '{00FF00}ÐŸÐ¾Ð»Ð¾Ð¶ÐµÐ½Ð¸Ðµ Ð¾ÐºÐ½Ð° ÑÐ¾Ñ…Ñ€Ð°Ð½ÐµÐ½Ð¾!', -1)
+    sampAddChatMessage(CONFIG.tagInfo .. '{00FF00}Ïîëîæåíèå îêíà ñîõðàíåíî!', -1)
 end
 
--- ÐžÐ±Ñ€Ð°Ð±Ð¾Ñ‚ÐºÐ° Ð¿Ð¾ÑÐ²Ð»ÐµÐ½Ð¸Ñ Ð´Ð¸Ð°Ð»Ð¾Ð³Ð¾Ð²
-function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
-    if dialogId == 1334 then
-        lastDialogTime = os.clock() -- Ð¡Ð±Ñ€Ð¾Ñ Ñ‚Ð°Ð¹Ð¼ÐµÑ€Ð° Ð¿Ñ€Ð¸ Ð¿Ð¾ÑÐ²Ð»ÐµÐ½Ð¸Ð¸ Ð´Ð¸Ð°Ð»Ð¾Ð³Ð°
-        reportAnsweredCount = reportAnsweredCount + 1 -- Ð£Ð²ÐµÐ»Ð¸Ñ‡Ð¸Ð²Ð°ÐµÐ¼ ÑÑ‡ÐµÑ‚Ñ‡Ð¸Ðº
-        sampAddChatMessage(tag .. '{00FF00}Ð ÐµÐ¿Ð¾Ñ€Ñ‚ Ð¿Ñ€Ð¸Ð½ÑÑ‚! ÐžÑ‚Ð²ÐµÑ‡ÐµÐ½Ð¾ Ñ€ÐµÐ¿Ð¾Ñ€Ñ‚Ð°: ' .. reportAnsweredCount, -1)
-        if active then
-            active = false
-            show_arz_notify('info', 'RepFlow', 'Ð›Ð¾Ð²Ð»Ñ Ð¾Ñ‚ÐºÐ»ÑŽÑ‡ÐµÐ½Ð° Ð¸Ð·-Ð·Ð° Ð¾ÐºÐ½Ð° Ñ€ÐµÐ¿Ð¾Ñ€Ñ‚Ð°!', 3000)
+-- Îáðàáîòêà ïîÿâëåíèÿ äèàëîãîâ
+function onShowDialog(dialogId, style, title, button1, button2, text)
+    if SETTINGS.dialogHandlerEnabled[0] and dialogId == 1334 and title:find("Æàëîáà îò") then
+        local playerName = text:match("Æàëîáà:")
+        local reportText = text:match(":(.+)%[Ïðèíÿòü%]")
+        if playerName and reportText then
+            logReport(playerName, reportText)
+            STATE.reportAnsweredCount = STATE.reportAnsweredCount + 1
+            sampSendDialogResponse(dialogId, 1, 0, "")
+            sampAddChatMessage(CONFIG.tag .. "Ðåïîðò ïðèíÿò îò " .. playerName, -1)
+            logToFile("Ðåïîðò ïðèíÿò îò " .. playerName)
+            return false
         end
     end
 end
 
--- ÐŸÑ€Ð¾Ð²ÐµÑ€ÐºÐ° Ð°Ð²Ñ‚Ð¾ÑÑ‚Ð°Ñ€Ñ‚Ð° Ð»Ð¾Ð²Ð»Ð¸
+-- Ïðîâåðêà àâòîñòàðòà ëîâëè
 function checkAutoStart()
     local currentTime = os.clock()
     if SETTINGS.autoStartEnabled[0] and not STATE.active and not STATE.gameMinimized and
        (STATE.afkExitTime == 0 or currentTime - STATE.afkExitTime >= CONFIG.afkCooldown) then
         if not SETTINGS.disableAutoStartOnToggle and (currentTime - STATE.lastDialogTime) > SETTINGS.dialogTimeout[0] then
             STATE.active = true
-            sampAddChatMessage(CONFIG.tag .. "Ð›Ð¾Ð²Ð»Ñ Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð° Ð¿Ð¾ Ñ‚Ð°Ð¹Ð¼-Ð°ÑƒÑ‚Ñƒ", -1)
-            logToFile("Ð›Ð¾Ð²Ð»Ñ Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð° Ð¿Ð¾ Ñ‚Ð°Ð¹Ð¼Ð°ÑƒÑ‚Ñƒ")
+            sampAddChatMessage(CONFIG.tag .. "Ëîâëÿ âêëþ÷åíà ïî òàéì-àóòó", -1)
+            logToFile("Ëîâëÿ âêëþ÷åíà ïî òàéìàóòó")
         end
     end
 end
 
--- Ð¡Ð¾Ñ…Ñ€Ð°Ð½ÐµÐ½Ð¸Ðµ Ð¾Ð±Ñ‰Ð¸Ñ… Ð½Ð°ÑÑ‚Ñ€Ð¾ÐµÐº
+-- Ñîõðàíåíèå îáùèõ íàñòðîåê
 function saveSettings()
     ini.main.otInterval = SETTINGS.otInterval[0]
     ini.main.dialogTimeout = SETTINGS.dialogTimeout[0]
     ini.main.floodPause = SETTINGS.floodPause[0]
-    ini.main.useMilliseconds = SETTINGS.useMilliseconds[0] == true -- ÐŸÑ€ÐµÐ¾Ð±Ñ€Ð°Ð·ÑƒÐµÐ¼ Ð² true/false
+    ini.main.useMilliseconds = SETTINGS.useMilliseconds[0] == true -- Ïðåîáðàçóåì â true/false
     ini.main.dialogHandlerEnabled = SETTINGS.dialogHandlerEnabled[0] == true
     ini.main.autoStartEnabled = SETTINGS.autoStartEnabled[0] == true
     ini.main.otklflud = SETTINGS.hideFloodMsg[0] == true
@@ -458,7 +461,7 @@ function saveSettings()
     inicfg.save(ini, CONFIG.iniFilename)
 end
 
--- ÐžÑ‚Ñ€Ð¸ÑÐ¾Ð²ÐºÐ° ÑÑÑ‹Ð»ÐºÐ¸
+-- Îòðèñîâêà ññûëêè
 function imgui.Link(link, text)
     text = text or link
     local tSize = imgui.CalcTextSize(text)
@@ -471,7 +474,7 @@ function imgui.Link(link, text)
     DL:AddLine(imgui.ImVec2(p.x, p.y + tSize.y), imgui.ImVec2(p.x + tSize.x, p.y + tSize.y), color)
 end
 
--- ÐšÐ¾Ð¼Ð°Ð½Ð´Ð° Ð¾Ñ‚ÐºÑ€Ñ‹Ñ‚Ð¸Ñ Ð¼ÐµÐ½ÑŽ
+-- Êîìàíäà îòêðûòèÿ ìåíþ
 function cmd_arep(arg)
     SETTINGS.mainWindowState[0] = not SETTINGS.mainWindowState[0]
     imgui.Process = SETTINGS.mainWindowState[0]
@@ -480,39 +483,39 @@ end
 function cmd_update(arg)
     if update_found then
         update_state = true
-        sampAddChatMessage(CONFIG.tag .. "ÐÐ°Ñ‡Ð¸Ð½Ð°ÐµÑ‚ÑÑ Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ðµ...", -1)
-        logToFile("ÐŸÐ¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»ÑŒ Ð·Ð°Ð¿ÑƒÑÑ‚Ð¸Ð» Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ðµ")
+        sampAddChatMessage(CONFIG.tag .. "Íà÷èíàåòñÿ îáíîâëåíèå...", -1)
+        logToFile("Ïîëüçîâàòåëü çàïóñòèë îáíîâëåíèå")
     else
-        sampAddChatMessage(CONFIG.tag .. "{FF0000}ÐÐµÑ‚ Ð´Ð¾ÑÑ‚ÑƒÐ¿Ð½Ñ‹Ñ… Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ð¹ Ð´Ð»Ñ ÑƒÑÑ‚Ð°Ð½Ð¾Ð²ÐºÐ¸.", -1)
+        sampAddChatMessage(CONFIG.tag .. "{FF0000}Íåò äîñòóïíûõ îáíîâëåíèé äëÿ óñòàíîâêè.", -1)
     end
 end
 
--- Ð’ÐºÐ»Ð°Ð´ÐºÐ° "Ð¤Ð»ÑƒÐ´ÐµÑ€"
+-- Âêëàäêà "Ôëóäåð"
 function drawMainTab()
     local panelColor = COLORS.childPanel
-    imgui.Text(faicons('gear') .. u8" ÐÐ°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸  /  " .. faicons('message') .. u8" Ð¤Ð»ÑƒÐ´ÐµÑ€")
+    imgui.Text(faicons('gear') .. u8" Íàñòðîéêè  /  " .. faicons('message') .. u8" Ôëóäåð")
     imgui.Separator()
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("Flooder", imgui.ImVec2(0, 150), true) then
         imgui.PushItemWidth(100)
-        if imgui.Checkbox(u8'Ð˜ÑÐ¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÑŒ Ð¼Ð¸Ð»Ð»Ð¸ÑÐµÐºÑƒÐ½Ð´Ñ‹', SETTINGS.useMilliseconds) then
+        if imgui.Checkbox(u8'Èñïîëüçîâàòü ìèëëèñåêóíäû', SETTINGS.useMilliseconds) then
             ini.main.useMilliseconds = SETTINGS.useMilliseconds[0]
-            saveSettings() -- Ð¡Ð¾Ñ…Ñ€Ð°Ð½ÑÐµÐ¼ Ð²ÑÐµ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸
+            saveSettings() -- Ñîõðàíÿåì âñå íàñòðîéêè
         end
         imgui.PopItemWidth()
-        imgui.Text(u8'Ð˜Ð½Ñ‚ÐµÑ€Ð²Ð°Ð» Ð¾Ñ‚Ð¿Ñ€Ð°Ð²ÐºÐ¸ /ot (' .. (SETTINGS.useMilliseconds[0] and u8'Ð¼Ñ' or u8'ÑÐµÐº') .. '):')
-        imgui.Text(u8'Ð¢ÐµÐºÑƒÑ‰Ð¸Ð¹: ' .. SETTINGS.otInterval[0])
+        imgui.Text(u8'Èíòåðâàë îòïðàâêè /ot (' .. (SETTINGS.useMilliseconds[0] and u8'ìñ' or u8'ñåê') .. '):')
+        imgui.Text(u8'Òåêóùèé: ' .. SETTINGS.otInterval[0])
         imgui.PushItemWidth(45)
         imgui.InputText(u8'##otIntervalInput', SETTINGS.otIntervalBuffer, ffi.sizeof(SETTINGS.otIntervalBuffer))
         imgui.SameLine()
-        if imgui.Button(faicons('floppy_disk') .. u8" Ð¡Ð¾Ñ…Ñ€Ð°Ð½Ð¸Ñ‚ÑŒ") then
+        if imgui.Button(faicons('floppy_disk') .. u8" Ñîõðàíèòü") then
             local newValue = tonumber(ffi.string(SETTINGS.otIntervalBuffer))
             if newValue then
                 SETTINGS.otInterval[0] = newValue
-                saveSettings() -- Ð¡Ð¾Ñ…Ñ€Ð°Ð½ÑÐµÐ¼ Ð²ÑÐµ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸
-                sampAddChatMessage(CONFIG.tagInfo .. "Ð˜Ð½Ñ‚ÐµÑ€Ð²Ð°Ð» ÑÐ¾Ñ…Ñ€Ð°Ð½Ñ‘Ð½: {32CD32}" .. newValue, -1)
+                saveSettings() -- Ñîõðàíÿåì âñå íàñòðîéêè
+                sampAddChatMessage(CONFIG.tagInfo .. "Èíòåðâàë ñîõðàí¸í: {32CD32}" .. newValue, -1)
             else
-                sampAddChatMessage(CONFIG.tagInfo .. "ÐžÑˆÐ¸Ð±ÐºÐ°: {32CD32}Ð’Ð²ÐµÐ´Ð¸Ñ‚Ðµ Ñ‡Ð¸ÑÐ»Ð¾.", -1)
+                sampAddChatMessage(CONFIG.tagInfo .. "Îøèáêà: {32CD32}Ââåäèòå ÷èñëî.", -1)
             end
         end
         imgui.PopItemWidth()
@@ -522,19 +525,19 @@ function drawMainTab()
 
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("FloodPause", imgui.ImVec2(0, 100), true) then
-        imgui.Text(u8'ÐŸÐ°ÑƒÐ·Ð° Ð¿Ð¾ÑÐ»Ðµ Ñ„Ð»ÑƒÐ´Ð° (ÑÐµÐº):')
-        imgui.Text(u8'Ð¢ÐµÐºÑƒÑ‰Ð°Ñ: ' .. SETTINGS.floodPause[0])
+        imgui.Text(u8'Ïàóçà ïîñëå ôëóäà (ñåê):')
+        imgui.Text(u8'Òåêóùàÿ: ' .. SETTINGS.floodPause[0])
         imgui.PushItemWidth(45)
         imgui.InputText(u8'##floodPauseInput', SETTINGS.floodPauseBuffer, ffi.sizeof(SETTINGS.floodPauseBuffer))
         imgui.SameLine()
-        if imgui.Button(faicons('floppy_disk') .. u8" Ð¡Ð¾Ñ…Ñ€Ð°Ð½Ð¸Ñ‚ÑŒ Ð¿Ð°ÑƒÐ·Ñƒ") then
+        if imgui.Button(faicons('floppy_disk') .. u8" Ñîõðàíèòü ïàóçó") then
             local newValue = tonumber(ffi.string(SETTINGS.floodPauseBuffer))
             if newValue and newValue >= 1 and newValue <= 60 then
                 SETTINGS.floodPause[0] = newValue
-                saveSettings() -- Ð¡Ð¾Ñ…Ñ€Ð°Ð½ÑÐµÐ¼ Ð²ÑÐµ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸
-                sampAddChatMessage(CONFIG.tagInfo .. "ÐŸÐ°ÑƒÐ·Ð° ÑÐ¾Ñ…Ñ€Ð°Ð½ÐµÐ½Ð°: {32CD32}" .. newValue .. " ÑÐµÐº", -1)
+                saveSettings() -- Ñîõðàíÿåì âñå íàñòðîéêè
+                sampAddChatMessage(CONFIG.tagInfo .. "Ïàóçà ñîõðàíåíà: {32CD32}" .. newValue .. " ñåê", -1)
             else
-                sampAddChatMessage(CONFIG.tagInfo .. "ÐžÑˆÐ¸Ð±ÐºÐ°: {32CD32}1-60 ÑÐµÐº.", -1)
+                sampAddChatMessage(CONFIG.tagInfo .. "Îøèáêà: {32CD32}1-60 ñåê.", -1)
             end
         end
         imgui.PopItemWidth()
@@ -544,25 +547,25 @@ function drawMainTab()
 
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("InfoFlooder", imgui.ImVec2(0, 65), true) then
-        imgui.Text(u8'Ð¡ÐºÑ€Ð¸Ð¿Ñ‚ Ñ‚Ð°ÐºÐ¶Ðµ Ð¸Ñ‰ÐµÑ‚ Ð½Ð°Ð´Ð¿Ð¸ÑÑŒ Ð² Ñ‡Ð°Ñ‚Ðµ [Ð ÐµÐ¿Ð¾Ñ€Ñ‚] Ð¾Ñ‚ Ð˜Ð¼Ñ_Ð¤Ð°Ð¼Ð¸Ð»Ð¸Ñ.')
-        imgui.Text(u8'Ð¤Ð»ÑƒÐ´ÐµÑ€ Ð½ÑƒÐ¶ÐµÐ½ Ð´Ð»Ñ Ð´Ð¾Ð¿Ð¾Ð»Ð½Ð¸Ñ‚ÐµÐ»ÑŒÐ½Ð¾Ð³Ð¾ ÑÐ¿Ð¾ÑÐ¾Ð±Ð° Ð»Ð¾Ð²Ð»Ð¸ Ñ€ÐµÐ¿Ð¾Ñ€Ñ‚Ð°.')
+        imgui.Text(u8'Ñêðèïò òàêæå èùåò íàäïèñü â ÷àòå [Ðåïîðò] îò Èìÿ_Ôàìèëèÿ.')
+        imgui.Text(u8'Ôëóäåð íóæåí äëÿ äîïîëíèòåëüíîãî ñïîñîáà ëîâëè ðåïîðòà.')
     end
     imgui.EndChild()
     imgui.PopStyleColor()
 end
 
--- Ð’ÐºÐ»Ð°Ð´ÐºÐ° "ÐÐ°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸"
+-- Âêëàäêà "Íàñòðîéêè"
 function drawSettingsTab()
     local panelColor = COLORS.childPanel
-    imgui.Text(faicons('gear') .. u8" ÐÐ°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸  /  " .. faicons('sliders') .. u8" ÐžÑÐ½Ð¾Ð²Ð½Ñ‹Ðµ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸")
+    imgui.Text(faicons('gear') .. u8" Íàñòðîéêè  /  " .. faicons('sliders') .. u8" Îñíîâíûå íàñòðîéêè")
     imgui.Separator()
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("KeyBind", imgui.ImVec2(0, 60), true) then
-        imgui.Text(u8'Ð¢ÐµÐºÑƒÑ‰Ð°Ñ ÐºÐ»Ð°Ð²Ð¸ÑˆÐ° Ð°ÐºÑ‚Ð¸Ð²Ð°Ñ†Ð¸Ð¸:')
+        imgui.Text(u8'Òåêóùàÿ êëàâèøà àêòèâàöèè:')
         imgui.SameLine()
         if imgui.Button(u8'' .. STATE.keyBindName) then
             STATE.changingKey = true
-            sampAddChatMessage(CONFIG.tag .. "ÐÐ°Ð¶Ð¼Ð¸Ñ‚Ðµ Ð½Ð¾Ð²ÑƒÑŽ ÐºÐ»Ð°Ð²Ð¸ÑˆÑƒ Ð°ÐºÑ‚Ð¸Ð²Ð°Ñ†Ð¸Ð¸", -1)
+            sampAddChatMessage(CONFIG.tag .. "Íàæìèòå íîâóþ êëàâèøó àêòèâàöèè", -1)
         end
     end
     imgui.EndChild()
@@ -570,12 +573,12 @@ function drawSettingsTab()
 
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("DialogOptions", imgui.ImVec2(0, 110), true) then
-        imgui.Text(u8"ÐžÐ±Ñ€Ð°Ð±Ð¾Ñ‚ÐºÐ° Ð´Ð¸Ð°Ð»Ð¾Ð³Ð¾Ð²")
-        if imgui.Checkbox(u8'ÐžÐ±Ñ€Ð°Ð±Ð°Ñ‚Ñ‹Ð²Ð°Ñ‚ÑŒ Ð´Ð¸Ð°Ð»Ð¾Ð³Ð¸', SETTINGS.dialogHandlerEnabled) then
-            saveSettings() -- Ð¡Ð¾Ñ…Ñ€Ð°Ð½ÑÐµÐ¼ Ð²ÑÐµ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸
+        imgui.Text(u8"Îáðàáîòêà äèàëîãîâ")
+        if imgui.Checkbox(u8'Îáðàáàòûâàòü äèàëîãè', SETTINGS.dialogHandlerEnabled) then
+            saveSettings() -- Ñîõðàíÿåì âñå íàñòðîéêè
         end
-        if imgui.Checkbox(u8'ÐÐ²Ñ‚Ð¾ÑÑ‚Ð°Ñ€Ñ‚ Ð»Ð¾Ð²Ð»Ð¸', SETTINGS.autoStartEnabled) then
-            saveSettings() -- Ð¡Ð¾Ñ…Ñ€Ð°Ð½ÑÐµÐ¼ Ð²ÑÐµ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸
+        if imgui.Checkbox(u8'Àâòîñòàðò ëîâëè', SETTINGS.autoStartEnabled) then
+            saveSettings() -- Ñîõðàíÿåì âñå íàñòðîéêè
         end
     end
     imgui.EndChild()
@@ -583,13 +586,13 @@ function drawSettingsTab()
 
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("FloodOptions", imgui.ImVec2(0, 110), true) then
-        imgui.Text(u8"ÐÐ°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸ Ñ„Ð»ÑƒÐ´Ð°")
-        if imgui.Checkbox(u8'Ð¡ÐºÑ€Ñ‹Ñ‚ÑŒ "ÐÐµ Ñ„Ð»ÑƒÐ´Ð¸"', SETTINGS.hideFloodMsg) then
-            saveSettings() -- Ð¡Ð¾Ñ…Ñ€Ð°Ð½ÑÐµÐ¼ Ð²ÑÐµ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸
+        imgui.Text(u8"Íàñòðîéêè ôëóäà")
+        if imgui.Checkbox(u8'Ñêðûòü "Íå ôëóäè"', SETTINGS.hideFloodMsg) then
+            saveSettings() -- Ñîõðàíÿåì âñå íàñòðîéêè
         end
-        if imgui.Checkbox(u8'Ð˜ÑÐ¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÑŒ Ð¿Ð°ÑƒÐ·Ñƒ Ð¿Ð¾ÑÐ»Ðµ Ñ„Ð»ÑƒÐ´Ð°', SETTINGS.useFloodPause) then
-            saveSettings() -- Ð¡Ð¾Ñ…Ñ€Ð°Ð½ÑÐµÐ¼ Ð²ÑÐµ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸
-            sampAddChatMessage(CONFIG.tagInfo .. "ÐŸÐ°ÑƒÐ·Ð° Ð¿Ð¾ÑÐ»Ðµ Ñ„Ð»ÑƒÐ´Ð°: {32CD32}" .. (SETTINGS.useFloodPause[0] and "Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð°" or "Ð²Ñ‹ÐºÐ»ÑŽÑ‡ÐµÐ½Ð°"), -1)
+        if imgui.Checkbox(u8'Èñïîëüçîâàòü ïàóçó ïîñëå ôëóäà', SETTINGS.useFloodPause) then
+            saveSettings() -- Ñîõðàíÿåì âñå íàñòðîéêè
+            sampAddChatMessage(CONFIG.tagInfo .. "Ïàóçà ïîñëå ôëóäà: {32CD32}" .. (SETTINGS.useFloodPause[0] and "âêëþ÷åíà" or "âûêëþ÷åíà"), -1)
         end
     end
     imgui.EndChild()
@@ -597,15 +600,15 @@ function drawSettingsTab()
 
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("UpdateOptions", imgui.ImVec2(0, 110), true) then
-        imgui.Text(u8"ÐžÐ±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ñ")
-        if imgui.Checkbox(u8'ÐÐ²Ñ‚Ð¾Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ðµ Ð¿Ñ€Ð¸ Ð·Ð°Ð¿ÑƒÑÐºÐµ', SETTINGS.autoUpdateEnabled) then
-            saveSettings() -- Ð¡Ð¾Ñ…Ñ€Ð°Ð½ÑÐµÐ¼ Ð²ÑÐµ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸
-            sampAddChatMessage(CONFIG.tagInfo .. "ÐÐ²Ñ‚Ð¾Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ðµ: {32CD32}" .. (SETTINGS.autoUpdateEnabled[0] and "Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¾" or "Ð²Ñ‹ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¾"), -1)
+        imgui.Text(u8"Îáíîâëåíèÿ")
+        if imgui.Checkbox(u8'Àâòîîáíîâëåíèå ïðè çàïóñêå', SETTINGS.autoUpdateEnabled) then
+            saveSettings() -- Ñîõðàíÿåì âñå íàñòðîéêè
+            sampAddChatMessage(CONFIG.tagInfo .. "Àâòîîáíîâëåíèå: {32CD32}" .. (SETTINGS.autoUpdateEnabled[0] and "âêëþ÷åíî" or "âûêëþ÷åíî"), -1)
         end
-        imgui.Text(u8'Ð ÑƒÑ‡Ð½Ð°Ñ Ð¿Ñ€Ð¾Ð²ÐµÑ€ÐºÐ°:')
+        imgui.Text(u8'Ðó÷íàÿ ïðîâåðêà:')
         imgui.SameLine()
-        if imgui.Button(u8'ÐŸÑ€Ð¾Ð²ÐµÑ€Ð¸Ñ‚ÑŒ') then
-            sampAddChatMessage(CONFIG.tag .. "ÐŸÑ€Ð¾Ð²ÐµÑ€ÐºÐ° Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ð¹...", -1)
+        if imgui.Button(u8'Ïðîâåðèòü') then
+            sampAddChatMessage(CONFIG.tag .. "Ïðîâåðêà îáíîâëåíèé...", -1)
             check_update()
         end
     end
@@ -614,10 +617,10 @@ function drawSettingsTab()
 
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("LoggingOptions", imgui.ImVec2(0, 80), true) then
-        imgui.Text(u8"Ð›Ð¾Ð³Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð¸Ðµ")
-        if imgui.Checkbox(u8'Ð›Ð¾Ð³Ð¸Ñ€Ð¾Ð²Ð°Ñ‚ÑŒ Ð´ÐµÐ¹ÑÑ‚Ð²Ð¸Ñ', SETTINGS.logActionsEnabled) then
-            saveSettings() -- Ð¡Ð¾Ñ…Ñ€Ð°Ð½ÑÐµÐ¼ Ð²ÑÐµ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸
-            sampAddChatMessage(CONFIG.tagInfo .. "Ð›Ð¾Ð³Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð¸Ðµ Ð´ÐµÐ¹ÑÑ‚Ð²Ð¸Ð¹: {32CD32}" .. (SETTINGS.logActionsEnabled[0] and "Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¾" or "Ð²Ñ‹ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¾"), -1)
+        imgui.Text(u8"Ëîãèðîâàíèå")
+        if imgui.Checkbox(u8'Ëîãèðîâàòü äåéñòâèÿ', SETTINGS.logActionsEnabled) then
+            saveSettings() -- Ñîõðàíÿåì âñå íàñòðîéêè
+            sampAddChatMessage(CONFIG.tagInfo .. "Ëîãèðîâàíèå äåéñòâèé: {32CD32}" .. (SETTINGS.logActionsEnabled[0] and "âêëþ÷åíî" or "âûêëþ÷åíî"), -1)
         end
     end
     imgui.EndChild()
@@ -625,19 +628,19 @@ function drawSettingsTab()
 
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("AutoStartTimeout", imgui.ImVec2(0, 100), true) then
-        imgui.Text(u8'Ð¢Ð°Ð¹Ð¼-Ð°ÑƒÑ‚ Ð°Ð²Ñ‚Ð¾ÑÑ‚Ð°Ñ€Ñ‚Ð° (ÑÐµÐº):')
-        imgui.Text(u8'Ð¢ÐµÐºÑƒÑ‰Ð¸Ð¹: ' .. SETTINGS.dialogTimeout[0])
+        imgui.Text(u8'Òàéì-àóò àâòîñòàðòà (ñåê):')
+        imgui.Text(u8'Òåêóùèé: ' .. SETTINGS.dialogTimeout[0])
         imgui.PushItemWidth(45)
         imgui.InputText(u8'##dialogTimeoutInput', SETTINGS.dialogTimeoutBuffer, ffi.sizeof(SETTINGS.dialogTimeoutBuffer))
         imgui.SameLine()
-        if imgui.Button(faicons('floppy_disk') .. u8" Ð¡Ð¾Ñ…Ñ€Ð°Ð½Ð¸Ñ‚ÑŒ") then
+        if imgui.Button(faicons('floppy_disk') .. u8" Ñîõðàíèòü") then
             local newValue = tonumber(ffi.string(SETTINGS.dialogTimeoutBuffer))
             if newValue and newValue >= 1 and newValue <= 9999 then
                 SETTINGS.dialogTimeout[0] = newValue
-                saveSettings() -- Ð¡Ð¾Ñ…Ñ€Ð°Ð½ÑÐµÐ¼ Ð²ÑÐµ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸
-                sampAddChatMessage(CONFIG.tagInfo .. "Ð¢Ð°Ð¹Ð¼-Ð°ÑƒÑ‚ ÑÐ¾Ñ…Ñ€Ð°Ð½Ñ‘Ð½: {32CD32}" .. newValue .. " ÑÐµÐº", -1)
+                saveSettings() -- Ñîõðàíÿåì âñå íàñòðîéêè
+                sampAddChatMessage(CONFIG.tagInfo .. "Òàéì-àóò ñîõðàí¸í: {32CD32}" .. newValue .. " ñåê", -1)
             else
-                sampAddChatMessage(CONFIG.tagInfo .. "ÐžÑˆÐ¸Ð±ÐºÐ°: {32CD32}1-9999.", -1)
+                sampAddChatMessage(CONFIG.tagInfo .. "Îøèáêà: {32CD32}1-9999.", -1)
             end
         end
         imgui.PopItemWidth()
@@ -647,9 +650,9 @@ function drawSettingsTab()
 
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("WindowPosition", imgui.ImVec2(0, 60), true) then
-        imgui.Text(u8'ÐŸÐ¾Ð»Ð¾Ð¶ÐµÐ½Ð¸Ðµ Ð¸Ð½Ñ„Ð¾-Ð¾ÐºÐ½Ð°:')
+        imgui.Text(u8'Ïîëîæåíèå èíôî-îêíà:')
         imgui.SameLine()
-        if imgui.Button(u8'Ð˜Ð·Ð¼ÐµÐ½Ð¸Ñ‚ÑŒ') then
+        if imgui.Button(u8'Èçìåíèòü') then
             startMovingWindow()
         end
     end
@@ -658,22 +661,22 @@ function drawSettingsTab()
 
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("ProfileOptions", imgui.ImVec2(0, 90), true) then
-        imgui.Text(u8'ÐŸÑ€Ð¾Ñ„Ð¸Ð»ÑŒ Ð½Ð°ÑÑ‚Ñ€Ð¾ÐµÐº:')
-        local profiles = { u8"ÐŸÑ€Ð¾Ñ„Ð¸Ð»ÑŒ 1", u8"ÐŸÑ€Ð¾Ñ„Ð¸Ð»ÑŒ 2", u8"ÐŸÑ€Ð¾Ñ„Ð¸Ð»ÑŒ 3" }
+        imgui.Text(u8'Ïðîôèëü íàñòðîåê:')
+        local profiles = { u8"Ïðîôèëü 1", u8"Ïðîôèëü 2", u8"Ïðîôèëü 3" }
         local cProfiles = ffi.new("const char*[?]", #profiles)
         for i, name in ipairs(profiles) do cProfiles[i - 1] = name end
         if imgui.Combo(u8'##ProfileSelector', SETTINGS.selectedProfile, cProfiles, #profiles) then
             ini.main.selectedProfile = SETTINGS.selectedProfile[0]
-            saveSettings() -- Ð¡Ð¾Ñ…Ñ€Ð°Ð½ÑÐµÐ¼ Ð²ÑÐµ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸
+            saveSettings() -- Ñîõðàíÿåì âñå íàñòðîéêè
             loadSettingsFromProfile()
         end
         imgui.SameLine()
-        if imgui.Button(u8'Ð¡Ð¾Ñ…Ñ€Ð°Ð½Ð¸Ñ‚ÑŒ Ð¿Ñ€Ð¾Ñ„Ð¸Ð»ÑŒ') then
+        if imgui.Button(u8'Ñîõðàíèòü ïðîôèëü') then
             local profileName = "profile_" .. (SETTINGS.selectedProfile[0] + 1)
             inicfg.save(ini, "moonloader/" .. profileName .. ".ini")
-            saveSettings() -- Ð¡Ð¾Ñ…Ñ€Ð°Ð½ÑÐµÐ¼ Ð²ÑÐµ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸
-            sampAddChatMessage(CONFIG.tag .. "ÐŸÑ€Ð¾Ñ„Ð¸Ð»ÑŒ ÑÐ¾Ñ…Ñ€Ð°Ð½Ñ‘Ð½: ÐŸÑ€Ð¾Ñ„Ð¸Ð»ÑŒ " .. (SETTINGS.selectedProfile[0] + 1), -1)
-            logToFile("ÐŸÑ€Ð¾Ñ„Ð¸Ð»ÑŒ ÑÐ¾Ñ…Ñ€Ð°Ð½Ñ‘Ð½: ÐŸÑ€Ð¾Ñ„Ð¸Ð»ÑŒ " .. (SETTINGS.selectedProfile[0] + 1))
+            saveSettings() -- Ñîõðàíÿåì âñå íàñòðîéêè
+            sampAddChatMessage(CONFIG.tag .. "Ïðîôèëü ñîõðàí¸í: Ïðîôèëü " .. (SETTINGS.selectedProfile[0] + 1), -1)
+            logToFile("Ïðîôèëü ñîõðàí¸í: Ïðîôèëü " .. (SETTINGS.selectedProfile[0] + 1))
         end
     end
     imgui.EndChild()
@@ -681,7 +684,7 @@ function drawSettingsTab()
 
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("ColorScheme", imgui.ImVec2(0, 100), true) then
-        imgui.Text(u8'Ð¦Ð²ÐµÑ‚Ð¾Ð²Ð°Ñ ÑÑ…ÐµÐ¼Ð°:')
+        imgui.Text(u8'Öâåòîâàÿ ñõåìà:')
         local themeNames = {}
         for i, theme in ipairs(COLOR_THEMES) do
             themeNames[i] = u8(theme.name)
@@ -692,9 +695,9 @@ function drawSettingsTab()
         end
         if imgui.Combo(u8'##ThemeSelector', SETTINGS.selectedTheme, cThemeNames, #themeNames) then
             COLORS = COLOR_THEMES[SETTINGS.selectedTheme[0] + 1]
-            saveSettings() -- Ð¡Ð¾Ñ…Ñ€Ð°Ð½ÑÐµÐ¼ Ð²ÑÐµ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸
-            sampAddChatMessage(CONFIG.tagInfo .. "Ð¢ÐµÐ¼Ð° Ð¸Ð·Ð¼ÐµÐ½ÐµÐ½Ð°: {32CD32}" .. COLOR_THEMES[SETTINGS.selectedTheme[0] + 1].name, -1)
-            logToFile("Ð¢ÐµÐ¼Ð° Ð¸Ð·Ð¼ÐµÐ½ÐµÐ½Ð° Ð½Ð°: " .. COLOR_THEMES[SETTINGS.selectedTheme[0] + 1].name)
+            saveSettings() -- Ñîõðàíÿåì âñå íàñòðîéêè
+            sampAddChatMessage(CONFIG.tagInfo .. "Òåìà èçìåíåíà: {32CD32}" .. COLOR_THEMES[SETTINGS.selectedTheme[0] + 1].name, -1)
+            logToFile("Òåìà èçìåíåíà íà: " .. COLOR_THEMES[SETTINGS.selectedTheme[0] + 1].name)
         end
     end
     imgui.EndChild()
@@ -705,29 +708,29 @@ function logReport(playerName, reportText)
     local reportFile = io.open("moonloader/repflow_reports.log", "a")
     if reportFile then
         local timestamp = os.date("%Y-%m-%d %H:%M:%S")
-        reportFile:write(string.format("[%s] Ð˜Ð³Ñ€Ð¾Ðº: %s | Ð ÐµÐ¿Ð¾Ñ€Ñ‚: %s\n", timestamp, playerName, reportText))
+        reportFile:write(string.format("[%s] Èãðîê: %s | Ðåïîðò: %s\n", timestamp, playerName, reportText))
         reportFile:close()
     end
 end
 
 function filterFloodMessage(text)
-    if SETTINGS.hideFloodMsg[0] and text:find("%[ÐžÑˆÐ¸Ð±ÐºÐ°%] {FFFFFF}ÐÐµ Ñ„Ð»ÑƒÐ´Ð¸!") then
+    if SETTINGS.hideFloodMsg[0] and text:find("%[Îøèáêà%] {FFFFFF}Íå ôëóäè!") then
         STATE.floodCount = STATE.floodCount + 1
         if SETTINGS.useFloodPause[0] then
             STATE.floodCooldown = os.clock() * 1000 + (SETTINGS.floodPause[0] * 1000)
-            sampAddChatMessage(CONFIG.tag .. "Ð¤Ð»ÑƒÐ´, Ð¿Ð°ÑƒÐ·Ð° Ð½Ð° " .. SETTINGS.floodPause[0] .. " ÑÐµÐº", -1)
-            logToFile("Ð¤Ð»ÑƒÐ´, Ð¿Ð°ÑƒÐ·Ð° Ð½Ð° " .. SETTINGS.floodPause[0] .. " ÑÐµÐº")
+            sampAddChatMessage(CONFIG.tag .. "Ôëóä, ïàóçà íà " .. SETTINGS.floodPause[0] .. " ñåê", -1)
+            logToFile("Ôëóä, ïàóçà íà " .. SETTINGS.floodPause[0] .. " ñåê")
         else
-            sampAddChatMessage(CONFIG.tag .. "Ð¤Ð»ÑƒÐ´ Ð¾Ð±Ð½Ð°Ñ€ÑƒÐ¶ÐµÐ½, Ð¿Ð°ÑƒÐ·Ð° Ð¾Ñ‚ÐºÐ»ÑŽÑ‡ÐµÐ½Ð°", -1)
-            logToFile("Ð¤Ð»ÑƒÐ´ Ð¾Ð±Ð½Ð°Ñ€ÑƒÐ¶ÐµÐ½, Ð¿Ð°ÑƒÐ·Ð° Ð¾Ñ‚ÐºÐ»ÑŽÑ‡ÐµÐ½Ð°")
+            sampAddChatMessage(CONFIG.tag .. "Ôëóä îáíàðóæåí, ïàóçà îòêëþ÷åíà", -1)
+            logToFile("Ôëóä îáíàðóæåí, ïàóçà îòêëþ÷åíà")
         end
         return false
-    elseif SETTINGS.hideFloodMsg[0] and text:find("%[ÐžÑˆÐ¸Ð±ÐºÐ°%] {FFFFFF}Ð¡ÐµÐ¹Ñ‡Ð°Ñ Ð½ÐµÑ‚ Ð²Ð¾Ð¿Ñ€Ð¾ÑÐ¾Ð² Ð² Ñ€ÐµÐ¿Ð¾Ñ€Ñ‚!") then
+    elseif SETTINGS.hideFloodMsg[0] and text:find("%[Îøèáêà%] {FFFFFF}Ñåé÷àñ íåò âîïðîñîâ â ðåïîðò!") then
         return false
     end
 end
 
--- ÐŸÑ€Ð¾Ð²ÐµÑ€ÐºÐ° ÑÐ²Ð¾Ñ€Ð°Ñ‡Ð¸Ð²Ð°Ð½Ð¸Ñ Ð¸Ð³Ñ€Ñ‹
+-- Ïðîâåðêà ñâîðà÷èâàíèÿ èãðû
 function checkPauseAndDisableAutoStart()
     if isPauseMenuActive() then
         if not STATE.gameMinimized then
@@ -740,37 +743,37 @@ function checkPauseAndDisableAutoStart()
             STATE.gameMinimized = false
             STATE.afkExitTime = os.clock()
             if STATE.wasActiveBeforePause then
-                sampAddChatMessage(CONFIG.tag .. '{FFFFFF}Ð’Ñ‹ Ð²Ñ‹ÑˆÐ»Ð¸ Ð¸Ð· Ð¿Ð°ÑƒÐ·Ñ‹. Ð›Ð¾Ð²Ð»Ñ Ð¾Ñ‚ÐºÐ»ÑŽÑ‡ÐµÐ½Ð° Ð¸Ð·-Ð·Ð° AFK!', -1)
-                logToFile("Ð’Ñ‹Ñ…Ð¾Ð´ Ð¸Ð· Ð¿Ð°ÑƒÐ·Ñ‹, Ð»Ð¾Ð²Ð»Ñ Ð¾Ñ‚ÐºÐ»ÑŽÑ‡ÐµÐ½Ð°")
+                sampAddChatMessage(CONFIG.tag .. '{FFFFFF}Âû âûøëè èç ïàóçû. Ëîâëÿ îòêëþ÷åíà èç-çà AFK!', -1)
+                logToFile("Âûõîä èç ïàóçû, ëîâëÿ îòêëþ÷åíà")
             end
         end
     end
 end
 
--- Ð’ÐºÐ»Ð°Ð´ÐºÐ° "Ð˜Ð½Ñ„Ð¾Ñ€Ð¼Ð°Ñ†Ð¸Ñ"
+-- Âêëàäêà "Èíôîðìàöèÿ"
 function drawInfoTab()
-    imgui.Text(faicons('star') .. u8" RepFlow  /  " .. faicons('user') .. u8" Ð˜Ð½Ñ„Ð¾Ñ€Ð¼Ð°Ñ†Ð¸Ñ")
+    imgui.Text(faicons('star') .. u8" RepFlow  /  " .. faicons('user') .. u8" Èíôîðìàöèÿ")
     imgui.Separator()
     local panelColor = COLORS.childPanel
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("Info", imgui.ImVec2(0, 400), true) then
         imgui.Text(u8"RepFlow v" .. CONFIG.scriptVersion .. " by Matthew_McLaren[18]")
-        imgui.Text(u8"Ð¡ÐºÑ€Ð¸Ð¿Ñ‚ Ð´Ð»Ñ Ð°Ð²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ñ‡ÐµÑÐºÐ¾Ð¹ Ð»Ð¾Ð²Ð»Ð¸ Ñ€ÐµÐ¿Ð¾Ñ€Ñ‚Ð¾Ð² Ð½Ð° ÑÐµÑ€Ð²ÐµÑ€Ð°Ñ… Arizona RP.")
+        imgui.Text(u8"Ñêðèïò äëÿ àâòîìàòè÷åñêîé ëîâëè ðåïîðòîâ íà ñåðâåðàõ Arizona RP.")
         imgui.Separator()
-        imgui.Text(u8"ÐžÑÐ½Ð¾Ð²Ð½Ñ‹Ðµ Ñ„ÑƒÐ½ÐºÑ†Ð¸Ð¸:")
-        imgui.TextWrapped(u8"- ÐÐ²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ñ‡ÐµÑÐºÐ°Ñ Ð¾Ñ‚Ð¿Ñ€Ð°Ð²ÐºÐ° ÐºÐ¾Ð¼Ð°Ð½Ð´Ñ‹ /ot Ñ Ð½Ð°ÑÑ‚Ñ€Ð°Ð¸Ð²Ð°ÐµÐ¼Ñ‹Ð¼ Ð¸Ð½Ñ‚ÐµÑ€Ð²Ð°Ð»Ð¾Ð¼.")
-        imgui.TextWrapped(u8"- ÐžÐ±Ð½Ð°Ñ€ÑƒÐ¶ÐµÐ½Ð¸Ðµ Ñ€ÐµÐ¿Ð¾Ñ€Ñ‚Ð¾Ð² Ð² Ñ‡Ð°Ñ‚Ðµ Ð¿Ð¾ ÐºÐ»ÑŽÑ‡ÐµÐ²Ð¾Ð¹ Ñ„Ñ€Ð°Ð·Ðµ '[Ð ÐµÐ¿Ð¾Ñ€Ñ‚] Ð¾Ñ‚ Ð˜Ð¼Ñ_Ð¤Ð°Ð¼Ð¸Ð»Ð¸Ñ'.")
-        imgui.TextWrapped(u8"- ÐÐ²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ñ‡ÐµÑÐºÐ°Ñ Ð¾Ð±Ñ€Ð°Ð±Ð¾Ñ‚ÐºÐ° Ð´Ð¸Ð°Ð»Ð¾Ð³Ð° 1334 Ð´Ð»Ñ Ð¿Ñ€Ð¸Ð½ÑÑ‚Ð¸Ñ Ñ€ÐµÐ¿Ð¾Ñ€Ñ‚Ð¾Ð².")
-        imgui.TextWrapped(u8"- Ð¡Ñ‚Ð°Ñ‚Ð¸ÑÑ‚Ð¸ÐºÐ°: Ð¿Ð¾Ð¿Ñ‹Ñ‚ÐºÐ¸, Ð¿Ñ€Ð¸Ð½ÑÑ‚Ñ‹Ðµ Ñ€ÐµÐ¿Ð¾Ñ€Ñ‚Ñ‹, Ñ„Ð»ÑƒÐ´Ñ‹.")
-        imgui.TextWrapped(u8"- ÐŸÐ¾Ð´Ð´ÐµÑ€Ð¶ÐºÐ° Ð¿Ñ€Ð¾Ñ„Ð¸Ð»ÐµÐ¹ Ð½Ð°ÑÑ‚Ñ€Ð¾ÐµÐº Ð¸ Ñ†Ð²ÐµÑ‚Ð¾Ð²Ñ‹Ñ… Ñ‚ÐµÐ¼.")
+        imgui.Text(u8"Îñíîâíûå ôóíêöèè:")
+        imgui.TextWrapped(u8"- Àâòîìàòè÷åñêàÿ îòïðàâêà êîìàíäû /ot ñ íàñòðàèâàåìûì èíòåðâàëîì.")
+        imgui.TextWrapped(u8"- Îáíàðóæåíèå ðåïîðòîâ â ÷àòå ïî êëþ÷åâîé ôðàçå '[Ðåïîðò] îò Èìÿ_Ôàìèëèÿ'.")
+        imgui.TextWrapped(u8"- Àâòîìàòè÷åñêàÿ îáðàáîòêà äèàëîãà 1334 äëÿ ïðèíÿòèÿ ðåïîðòîâ.")
+        imgui.TextWrapped(u8"- Ñòàòèñòèêà: ïîïûòêè, ïðèíÿòûå ðåïîðòû, ôëóäû.")
+        imgui.TextWrapped(u8"- Ïîääåðæêà ïðîôèëåé íàñòðîåê è öâåòîâûõ òåì.")
         imgui.Separator()
-        imgui.Text(u8"Ð¡ÑÑ‹Ð»ÐºÐ¸:")
-        imgui.Link(u8"https://blast.hk/threads/12345", u8"Ð¢ÐµÐ¼Ð° Ð½Ð° blast.hk")
-        imgui.Link(u8"https://github.com/Zorahm/RepFlow", u8"GitHub-Ñ€ÐµÐ¿Ð¾Ð·Ð¸Ñ‚Ð¾Ñ€Ð¸Ð¹")
+        imgui.Text(u8"Ññûëêè:")
+        imgui.Link(u8"https://blast.hk/threads/12345", u8"Òåìà íà blast.hk")
+        imgui.Link(u8"https://github.com/Zorahm/RepFlow", u8"GitHub-ðåïîçèòîðèé")
         imgui.Separator()
-        imgui.Text(u8"Ð‘Ð»Ð°Ð³Ð¾Ð´Ð°Ñ€Ð½Ð¾ÑÑ‚Ð¸:")
-        imgui.Text(u8"Ð¢ÐµÑÑ‚ÐµÑ€Ñ‹: Carl_Mort[18], Sweet_Lemonte[18], Balenciaga_Collins[18].")
-        imgui.Text(u8"Ð¡Ð²ÑÐ·ÑŒ Ñ Ð°Ð²Ñ‚Ð¾Ñ€Ð¾Ð¼: Telegram @Zorahm")
+        imgui.Text(u8"Áëàãîäàðíîñòè:")
+        imgui.Text(u8"Òåñòåðû: Carl_Mort[18], Sweet_Lemonte[18], Balenciaga_Collins[18].")
+        imgui.Text(u8"Ñâÿçü ñ àâòîðîì: Telegram @Zorahm")
     end
     imgui.EndChild()
     imgui.PopStyleColor()
@@ -778,33 +781,33 @@ end
 
 function drawStatsTab()
     local panelColor = COLORS.childPanel
-    imgui.Text(faicons('star') .. u8" RepFlow  /  " .. faicons('user') .. u8" Ð¡Ñ‚Ð°Ñ‚Ð¸ÑÑ‚Ð¸ÐºÐ°")
+    imgui.Text(faicons('star') .. u8" RepFlow  /  " .. faicons('user') .. u8" Ñòàòèñòèêà")
     imgui.Separator()
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("Stats", imgui.ImVec2(0, -1), true) then
-        imgui.Text(u8"ÐžÐ±Ñ‰ÐµÐµ Ð²Ñ€ÐµÐ¼Ñ Ñ€Ð°Ð±Ð¾Ñ‚Ñ‹: " .. string.format("%.2f", os.clock() - STATE.scriptStartTime) .. u8" ÑÐµÐº")
-        imgui.Text(u8"ÐŸÐ¾Ð¿Ñ‹Ñ‚Ð¾Ðº Ð¾Ñ‚Ð¿Ñ€Ð°Ð²ÐºÐ¸ /ot: " .. STATE.reportAttempts)
-        imgui.Text(u8"ÐŸÑ€Ð¸Ð½ÑÑ‚Ð¾ Ñ€ÐµÐ¿Ð¾Ñ€Ñ‚Ð¾Ð²: " .. STATE.reportAnsweredCount)
-        imgui.Text(u8"ÐžÐ±Ð½Ð°Ñ€ÑƒÐ¶ÐµÐ½Ð¾ Ñ„Ð»ÑƒÐ´Ð¾Ð²: " .. STATE.floodCount)
-        if imgui.Button(u8"Ð¡Ð±Ñ€Ð¾ÑÐ¸Ñ‚ÑŒ ÑÑ‚Ð°Ñ‚Ð¸ÑÑ‚Ð¸ÐºÑƒ") then
+        imgui.Text(u8"Îáùåå âðåìÿ ðàáîòû: " .. string.format("%.2f", os.clock() - STATE.scriptStartTime) .. u8" ñåê")
+        imgui.Text(u8"Ïîïûòîê îòïðàâêè /ot: " .. STATE.reportAttempts)
+        imgui.Text(u8"Ïðèíÿòî ðåïîðòîâ: " .. STATE.reportAnsweredCount)
+        imgui.Text(u8"Îáíàðóæåíî ôëóäîâ: " .. STATE.floodCount)
+        if imgui.Button(u8"Ñáðîñèòü ñòàòèñòèêó") then
             STATE.reportAttempts = 0
             STATE.reportAnsweredCount = 0
             STATE.floodCount = 0
             STATE.scriptStartTime = os.clock()
-            sampAddChatMessage(CONFIG.tag .. "Ð¡Ñ‚Ð°Ñ‚Ð¸ÑÑ‚Ð¸ÐºÐ° ÑÐ±Ñ€Ð¾ÑˆÐµÐ½Ð°", -1)
-            logToFile("Ð¡Ñ‚Ð°Ñ‚Ð¸ÑÑ‚Ð¸ÐºÐ° ÑÐ±Ñ€Ð¾ÑˆÐµÐ½Ð°")
+            sampAddChatMessage(CONFIG.tag .. "Ñòàòèñòèêà ñáðîøåíà", -1)
+            logToFile("Ñòàòèñòèêà ñáðîøåíà")
         end
     end
     imgui.EndChild()
     imgui.PopStyleColor()
 end
 
--- Ð’ÐºÐ»Ð°Ð´ÐºÐ° "ChangeLog"
+-- Âêëàäêà "ChangeLog"
 function drawChangeLogTab()
-    imgui.Text(faicons('star') .. u8" RepFlow  /  " .. faicons('bolt') .. u8" ChangeLog. ÐŸÐ¾Ð»Ð½Ñ‹Ð¹ ÑÐ¼Ð¾Ñ‚Ñ€Ð¸Ñ‚Ðµ Ð½Ð° GitHub!")
+    imgui.Text(faicons('star') .. u8" RepFlow  /  " .. faicons('bolt') .. u8" ChangeLog. Ïîëíûé ñìîòðèòå íà GitHub!")
     imgui.Separator()
     for _, entry in ipairs(changelogEntries) do
-        if imgui.CollapsingHeader(u8("Ð’ÐµÑ€ÑÐ¸Ñ ") .. entry.version) then
+        if imgui.CollapsingHeader(u8("Âåðñèÿ ") .. entry.version) then
             imgui.PushTextWrapPos(imgui.GetWindowWidth() - 20)
             imgui.TextWrapped(u8(entry.description))
             imgui.PopTextWrapPos()
@@ -812,11 +815,11 @@ function drawChangeLogTab()
     end
 end
 
--- ÐžÑ‚Ñ€Ð¸ÑÐ¾Ð²ÐºÐ° Ð³Ð»Ð°Ð²Ð½Ð¾Ð³Ð¾ Ð¾ÐºÐ½Ð°
+-- Îòðèñîâêà ãëàâíîãî îêíà
 imgui.OnFrame(function() return SETTINGS.mainWindowState[0] end, function(player)
     imgui.SetNextWindowSize(imgui.ImVec2(800, 500), imgui.Cond.FirstUseEver)
     imgui.SetNextWindowPos(imgui.ImVec2(sw / 2, sh / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
-    -- ÐŸÑ€Ð¸Ð¼ÐµÐ½ÑÐµÐ¼ ÑÑ‚Ð¸Ð»Ð¸ Ð´Ð»Ñ Ð²ÑÐµÑ… ÑÐ»ÐµÐ¼ÐµÐ½Ñ‚Ð¾Ð²
+    -- Ïðèìåíÿåì ñòèëè äëÿ âñåõ ýëåìåíòîâ
     imgui.PushStyleColor(imgui.Col.WindowBg, COLORS.rightPanel)
     imgui.PushStyleColor(imgui.Col.Text, COLORS.text)
     imgui.PushStyleColor(imgui.Col.Button, COLORS.button)
@@ -831,7 +834,7 @@ imgui.OnFrame(function() return SETTINGS.mainWindowState[0] end, function(player
     if imgui.Begin(faicons('bolt') .. u8' RepFlow | Premium', SETTINGS.mainWindowState, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoCollapse) then
         imgui.PushStyleColor(imgui.Col.ChildBg, COLORS.leftPanel)
         if imgui.BeginChild("left_panel", imgui.ImVec2(125, -1), false) then
-            local tabNames = { "Ð¤Ð»ÑƒÐ´ÐµÑ€", "ÐÐ°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸", "Ð˜Ð½Ñ„Ð¾Ñ€Ð¼Ð°Ñ†Ð¸Ñ", "Ð¡Ñ‚Ð°Ñ‚Ð¸ÑÑ‚Ð¸ÐºÐ°", "ChangeLog" }
+            local tabNames = { "Ôëóäåð", "Íàñòðîéêè", "Èíôîðìàöèÿ", "Ñòàòèñòèêà", "ChangeLog" }
             for i, name in ipairs(tabNames) do
                 if i - 1 == SETTINGS.activeTab[0] then
                     imgui.PushStyleColor(imgui.Col.Button, COLORS.hover)
@@ -863,11 +866,11 @@ imgui.OnFrame(function() return SETTINGS.mainWindowState[0] end, function(player
         imgui.PopStyleColor()
     end
     imgui.End()
-    -- Ð£Ð±Ð¸Ñ€Ð°ÐµÐ¼ Ð²ÑÐµ ÑÑ‚Ð¸Ð»Ð¸
-    imgui.PopStyleColor(9) -- Ð¡Ð¾Ð¾Ñ‚Ð²ÐµÑ‚ÑÑ‚Ð²ÑƒÐµÑ‚ ÐºÐ¾Ð»Ð¸Ñ‡ÐµÑÑ‚Ð²Ñƒ PushStyleColor
+    -- Óáèðàåì âñå ñòèëè
+    imgui.PopStyleColor(9) -- Ñîîòâåòñòâóåò êîëè÷åñòâó PushStyleColor
 end)
 
--- ÐžÐ±Ñ€Ð°Ð±Ð¾Ñ‚ÐºÐ° ÑÐ¼ÐµÐ½Ñ‹ ÐºÐ»Ð°Ð²Ð¸ÑˆÐ¸
+-- Îáðàáîòêà ñìåíû êëàâèøè
 function onWindowMessage(msg, wparam, lparam)
     if STATE.changingKey then
         if msg == 0x100 or msg == 0x101 then
@@ -877,14 +880,14 @@ function onWindowMessage(msg, wparam, lparam)
             ini.main.keyBind = string.format("0x%X", STATE.keyBind)
             ini.main.keyBindName = STATE.keyBindName
             inicfg.save(ini, CONFIG.iniFilename)
-            sampAddChatMessage(string.format(CONFIG.tag .. '{FFFFFF}ÐÐ¾Ð²Ð°Ñ ÐºÐ»Ð°Ð²Ð¸ÑˆÐ°: {00FF00}%s', STATE.keyBindName), -1)
-            logToFile("ÐÐ¾Ð²Ð°Ñ ÐºÐ»Ð°Ð²Ð¸ÑˆÐ°: " .. STATE.keyBindName)
+            sampAddChatMessage(string.format(CONFIG.tag .. '{FFFFFF}Íîâàÿ êëàâèøà: {00FF00}%s', STATE.keyBindName), -1)
+            logToFile("Íîâàÿ êëàâèøà: " .. STATE.keyBindName)
             return false
         end
     end
 end
 
--- Ð¦ÐµÐ½Ñ‚Ñ€Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð¸Ðµ Ñ‚ÐµÐºÑÑ‚Ð°
+-- Öåíòðèðîâàíèå òåêñòà
 function imgui.CenterText(text)
     local width = imgui.GetWindowWidth()
     local calc = imgui.CalcTextSize(text)
@@ -897,7 +900,7 @@ function loadSettingsFromProfile()
     SETTINGS.otInterval[0] = profileIni.main.otInterval or 10
     SETTINGS.dialogTimeout[0] = profileIni.main.dialogTimeout or 600
     SETTINGS.floodPause[0] = profileIni.main.floodPause or 10
-    SETTINGS.useMilliseconds[0] = profileIni.main.useMilliseconds == true -- Ð—Ð°Ð³Ñ€ÑƒÐ¶Ð°ÐµÐ¼ ÐºÐ°Ðº Ð±ÑƒÐ»ÐµÐ²Ð¾
+    SETTINGS.useMilliseconds[0] = profileIni.main.useMilliseconds == true -- Çàãðóæàåì êàê áóëåâî
     SETTINGS.hideFloodMsg[0] = profileIni.main.otklflud == true
     SETTINGS.autoStartEnabled[0] = profileIni.main.autoStartEnabled == true
     SETTINGS.dialogHandlerEnabled[0] = profileIni.main.dialogHandlerEnabled == true
@@ -909,7 +912,7 @@ function loadSettingsFromProfile()
     ini.widget.posX = profileIni.widget.posX or 400
     ini.widget.posY = profileIni.widget.posY or 400
 
-    -- Ð¡Ð¸Ð½Ñ…Ñ€Ð¾Ð½Ð¸Ð·Ð¸Ñ€ÑƒÐµÐ¼ ini.main Ñ Ñ‚ÐµÐºÑƒÑ‰Ð¸Ð¼Ð¸ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ°Ð¼Ð¸ Ð¿Ñ€Ð¾Ñ„Ð¸Ð»Ñ
+    -- Ñèíõðîíèçèðóåì ini.main ñ òåêóùèìè íàñòðîéêàìè ïðîôèëÿ
     ini.main = profileIni.main or {}
     ini.main.otInterval = SETTINGS.otInterval[0]
     ini.main.dialogTimeout = SETTINGS.dialogTimeout[0]
@@ -924,29 +927,29 @@ function loadSettingsFromProfile()
     ini.main.logActionsEnabled = SETTINGS.logActionsEnabled[0]
     ini.main.selectedProfile = SETTINGS.selectedProfile[0]
 
-    inicfg.save(ini, CONFIG.iniFilename) -- Ð¡Ð¾Ñ…Ñ€Ð°Ð½ÑÐµÐ¼ Ð¾Ð±Ð½Ð¾Ð²Ð»Ñ‘Ð½Ð½Ñ‹Ðµ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸
-    sampAddChatMessage(CONFIG.tag .. "Ð—Ð°Ð³Ñ€ÑƒÐ¶ÐµÐ½ Ð¿Ñ€Ð¾Ñ„Ð¸Ð»ÑŒ: ÐŸÑ€Ð¾Ñ„Ð¸Ð»ÑŒ " .. (SETTINGS.selectedProfile[0] + 1), -1)
-    logToFile("Ð—Ð°Ð³Ñ€ÑƒÐ¶ÐµÐ½ Ð¿Ñ€Ð¾Ñ„Ð¸Ð»ÑŒ: ÐŸÑ€Ð¾Ñ„Ð¸Ð»ÑŒ " .. (SETTINGS.selectedProfile[0] + 1))
+    inicfg.save(ini, CONFIG.iniFilename) -- Ñîõðàíÿåì îáíîâë¸ííûå íàñòðîéêè
+    sampAddChatMessage(CONFIG.tag .. "Çàãðóæåí ïðîôèëü: Ïðîôèëü " .. (SETTINGS.selectedProfile[0] + 1), -1)
+    logToFile("Çàãðóæåí ïðîôèëü: Ïðîôèëü " .. (SETTINGS.selectedProfile[0] + 1))
 end
 
--- ÐžÑ‚Ñ€Ð¸ÑÐ¾Ð²ÐºÐ° Ð¸Ð½Ñ„Ð¾Ñ€Ð¼Ð°Ñ†Ð¸Ð¾Ð½Ð½Ð¾Ð³Ð¾ Ð¾ÐºÐ½Ð°
+-- Îòðèñîâêà èíôîðìàöèîííîãî îêíà
 imgui.OnFrame(function() return SETTINGS.infoWindowState[0] end, function(self)
     self.HideCursor = true
     imgui.SetNextWindowSize(imgui.ImVec2(220, 200), imgui.Cond.FirstUseEver)
     imgui.SetNextWindowPos(imgui.ImVec2(ini.widget.posX, ini.widget.posY), imgui.Cond.Always)
-    imgui.Begin(faicons('star') .. u8" | Ð˜Ð½Ñ„Ð¾Ñ€Ð¼Ð°Ñ†Ð¸Ñ ", SETTINGS.infoWindowState, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoCollapse)
-    imgui.CenterText(u8'Ð¡Ñ‚Ð°Ñ‚ÑƒÑ: ' .. (STATE.active and u8'Ð’ÐºÐ»ÑŽÑ‡ÐµÐ½Ð°' or u8'Ð’Ñ‹ÐºÐ»ÑŽÑ‡ÐµÐ½Ð°'))
+    imgui.Begin(faicons('star') .. u8" | Èíôîðìàöèÿ ", SETTINGS.infoWindowState, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoCollapse)
+    imgui.CenterText(u8'Ñòàòóñ: ' .. (STATE.active and u8'Âêëþ÷åíà' or u8'Âûêëþ÷åíà'))
     local elapsedTime = os.clock() - STATE.startTime
-    imgui.Text(string.format(u8'Ð’Ñ€ÐµÐ¼Ñ: %.2f ÑÐµÐº', elapsedTime))
-    imgui.Text(string.format(u8'ÐŸÐ¾Ð¿Ñ‹Ñ‚Ð¾Ðº: %d', STATE.reportAttempts))
-    imgui.Text(string.format(u8'ÐŸÑ€Ð¸Ð½ÑÑ‚Ð¾: %d', STATE.reportAnsweredCount))
+    imgui.Text(string.format(u8'Âðåìÿ: %.2f ñåê', elapsedTime))
+    imgui.Text(string.format(u8'Ïîïûòîê: %d', STATE.reportAttempts))
+    imgui.Text(string.format(u8'Ïðèíÿòî: %d', STATE.reportAnsweredCount))
     imgui.Separator()
-    imgui.Text(u8'Ð”Ð¸Ð°Ð»Ð¾Ð³Ð¸: ' .. (SETTINGS.dialogHandlerEnabled[0] and u8'Ð’ÐºÐ»' or u8'Ð’Ñ‹ÐºÐ»'))
-    imgui.Text(u8'ÐÐ²Ñ‚Ð¾ÑÑ‚Ð°Ñ€Ñ‚: ' .. (SETTINGS.autoStartEnabled[0] and u8'Ð’ÐºÐ»' or u8'Ð’Ñ‹ÐºÐ»'))
+    imgui.Text(u8'Äèàëîãè: ' .. (SETTINGS.dialogHandlerEnabled[0] and u8'Âêë' or u8'Âûêë'))
+    imgui.Text(u8'Àâòîñòàðò: ' .. (SETTINGS.autoStartEnabled[0] and u8'Âêë' or u8'Âûêë'))
     imgui.End()
 end)
 
--- Ð£Ð¿Ñ€Ð°Ð²Ð»ÐµÐ½Ð¸Ðµ Ð²Ð¸Ð´Ð¸Ð¼Ð¾ÑÑ‚ÑŒÑŽ Ð¸Ð½Ñ„Ð¾Ñ€Ð¼Ð°Ñ†Ð¸Ð¾Ð½Ð½Ð¾Ð³Ð¾ Ð¾ÐºÐ½Ð°
+-- Óïðàâëåíèå âèäèìîñòüþ èíôîðìàöèîííîãî îêíà
 function showInfoWindow()
     SETTINGS.infoWindowState[0] = true
 end
@@ -955,10 +958,10 @@ function showInfoWindowOff()
     SETTINGS.infoWindowState[0] = false
 end
 
--- Ð¤ÑƒÐ½ÐºÑ†Ð¸Ñ Ð»Ð¾Ð³Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð¸Ñ
+-- Ôóíêöèÿ ëîãèðîâàíèÿ
 function logToFile(message)
-    if not SETTINGS.logActionsEnabled[0] and not message:find("ÐžÑˆÐ¸Ð±ÐºÐ°") then
-        return -- ÐÐµ Ð»Ð¾Ð³Ð¸Ñ€ÑƒÐµÐ¼, ÐµÑÐ»Ð¸ Ð¾Ñ‚ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¾, ÐºÑ€Ð¾Ð¼Ðµ Ð¾ÑˆÐ¸Ð±Ð¾Ðº
+    if not SETTINGS.logActionsEnabled[0] and not message:find("Îøèáêà") then
+        return -- Íå ëîãèðóåì, åñëè îòêëþ÷åíî, êðîìå îøèáîê
     end
     local logFile = io.open("moonloader/repflow.log", "a")
     if logFile then
