@@ -56,7 +56,8 @@ function check_update()
         if status == dlstatus.STATUS_ENDDOWNLOADDATA then
             local updateIni = inicfg.load(nil, update_path)
             if updateIni and updateIni.info and updateIni.info.vers then
-                if tonumber(updateIni.info.vers) > script_vers then
+                local remoteVers = tonumber(updateIni.info.vers)
+                if remoteVers and remoteVers > script_vers then
                     sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Имеется {32CD32}новая {FFFFFF}версия скрипта. Версия: {32CD32}" .. updateIni.info.vers_text .. ". {FFFFFF}Введите /update, чтобы обновить.", -1)
                     update_found = true -- Обновление найдено
                     logToFile("Найдена новая версия: " .. updateIni.info.vers_text)
