@@ -12,7 +12,7 @@ local dlstatus = require('moonloader').download_status
 -- Конфигурация скрипта
 local CONFIG = {
     iniFilename = 'RepFlowCFG.ini',
-    scriptVersion = "3.62 | Premium",
+    scriptVersion = "3.63 | Premium",
     defaultKeyBind = 0x5A,
     defaultKeyBindName = 'Z',
     afkCooldown = 30,
@@ -42,8 +42,8 @@ local changelogEntries = {
 -- Переменные для авто-обновлений
 local update_state = false        -- Если true, начнётся обновление
 local update_found = false        -- Если true, доступна команда /update
-local script_vers = 3.62           -- Текущая версия скрипта (числовая)
-local script_vers_text = "3.62"    -- Текущая версия для отображения пользователю
+local script_vers = 3.63           -- Текущая версия скрипта (числовая)
+local script_vers_text = "3.63"    -- Текущая версия для отображения пользователю
 
 local update_url = "https://raw.githubusercontent.com/Zorahm/repflow/main/update.ini"
 local update_path = getWorkingDirectory() .. "/update.ini"
@@ -417,12 +417,18 @@ function saveWindowSettings()
 end
 
 function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
-    if dialogId == 1334 then
-        lastDialogTime = os.clock() -- Сброс таймера при появлении диалога
-        reportAnsweredCount = reportAnsweredCount + 1 -- Увеличиваем счетчик
-        sampAddChatMessage(tag .. '{00FF00}Репорт принят, отключаю ловлю! Отвечено репорта: ' .. reportAnsweredCount, -1)
-        if active then
-            active = false
+    if dialogId == 1334 and SETTINGS.dialogHandlerEnabled[0] then
+        STATE.lastDialogTime = os.clock() -- Сброс таймера при появлении диалога
+        STATE.reportAnsweredCount = STATE.reportAnsweredCount + 1 -- Увеличиваем счетчик
+        sampAddChatMessage(CONFIG.tag .. '{00FF00}Репорт принят, отключаю ловлю! Отвечено репорта: ' .. STATE.reportAnsweredCount, -1)
+        logToFile("Репорт принят, всего: " .. STATE.reportAnsweredCount)
+        -- Логируем информацию о репорте
+        local playerName = text:match("(%w+_%w+)%[") or "Неизвестный"
+        logReport(playerName, text)
+        if STATE.active then
+            STATE.active = false
+            sampAddChatMessage(CONFIG.tag .. "Ловля отключена из-за принятия репорта", -1)
+            logToFile("Ловля отключена из-за принятия репорта")
         end
     end
 end
