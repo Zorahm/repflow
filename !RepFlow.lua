@@ -12,7 +12,7 @@ local dlstatus = require('moonloader').download_status
 -- Конфигурация скрипта
 local CONFIG = {
     iniFilename = 'RepFlowCFG.ini',
-    scriptVersion = "3.63 | Premium",
+    scriptVersion = "3.7 | Premium",
     defaultKeyBind = 0x5A,
     defaultKeyBindName = 'Z',
     afkCooldown = 30,
@@ -26,6 +26,25 @@ local new = imgui.new
 -- Данные ChangeLog
 local changelogEntries = {
     {
+        version = "3.7 | Premium",
+        description = "- Новые функции:\n" ..
+                      "  - Добавлена расширенная статистика: отображение среднего времени между попытками /ot.\n" ..
+                      "  - Добавлена команда /arepstats для быстрого просмотра статистики в чате.\n" ..
+                      "  - Добавлены вопросики (подсказки) в меню настроек для упрощения понимания опций.\n" ..
+                      "- Улучшения:\n" ..
+                      "  - Оптимизирована производительность: уменьшено потребление ресурсов при длительной работе.\n" ..
+                      "  - Убрана необходимость нажимать кнопку 'Сохранить профиль' — настройки сохраняются автоматически при изменении.\n" ..
+                      "  - Улучшено выравнивание элементов в информационном окне (исправлено смещение текста).\n" ..
+                      "  - Обновлён дизайн кнопки включения/выключения с анимацией переключения.\n" ..
+                      "  - Обновлён дизайн вкладки 'Статистика' с иконками и улучшенной структурой.\n" ..
+                      "  - Обновлена вкладка 'Информация': улучшен дизайн, добавлена актуальная дата и больше деталей.\n" ..
+                      "- Исправления ошибок:\n" ..
+                      "  - Исправлена проблема с повторным включением ловли после выключения кнопкой.\n" ..
+                      "  - Устранён конфликт с автостартом при ручном отключении.\n" ..
+                      "  - Улучшена стабильность обработки диалогов при высокой нагрузке.\n" ..
+                      "  - Пофикшен спам сообщений в чате при запуске или активации скрипта."
+    },
+    {
         version = "3.6 | Premium",
         description = "- Обновлено окно информации. Добавлены кликабельные ссылки на blast.hk и GitHub-репозиторий в меню 'Информация'.\n  - Исправлены потенциальные проблемы с сохранением настроек во вкладке 'Настройки'.\n -Улучшеная оптимизация скрипта. \n - Удалены CEF-уведомления Аризоны."
     },
@@ -33,17 +52,13 @@ local changelogEntries = {
         version = "3.5 | Premium",
         description = "  - Добавлена кнопка сброса всех настроек в меню 'Настройки'.\n  - Теперь версия скрипта отображается в заголовке окна ImGui.\n  - Улучшена читаемость ChangeLog: добавлены отступы для пунктов.\n  - Оптимизирована производительность: минимизированы вызовы u8 в циклических функциях."
     },
-    {
-        version = "3.4 | Premium",
-        description = "  - Обновлено меню настроек: чекбоксы распределены по категориям (Диалоги, Флуд, Обновления, Логирование).\n  - Добавлена возможность отключить логирование каждого действия (критические логи остаются).\n  - Добавлена поддержка профилей настроек: теперь можно сохранять и загружать до трёх профилей.\n  - Добавлено автоматическое логирование принятых репортов в файл repflow_reports.log.\n  - Добавлена новая вкладка 'Статистика' с информацией о времени работы, попытках, репортах и флуде.\n  - Добавлена команда /update для ручного запуска обновления скрипта (доступна после проверки обновлений)."
-    },
 }
 
 -- Переменные для авто-обновлений
-local update_state = false        -- Если true, начнётся обновление
-local update_found = false        -- Если true, доступна команда /update
-local script_vers = 3.63           -- Текущая версия скрипта (числовая)
-local script_vers_text = "3.63"    -- Текущая версия для отображения пользователю
+local update_state = false
+local update_found = false
+local script_vers = 3.7
+local script_vers_text = "3.7"
 
 local update_url = "https://raw.githubusercontent.com/Zorahm/repflow/main/update.ini"
 local update_path = getWorkingDirectory() .. "/update.ini"
@@ -55,23 +70,20 @@ function check_update()
     downloadUrlToFile(update_url, update_path, function(id, status)
         if status == dlstatus.STATUS_ENDDOWNLOADDATA then
             local updateIni = inicfg.load(nil, update_path)
-            if updateIni and updateIni.info and updateIni.info.vers then
+            if updateIni and updateIni.info and updateIni.info.vers and updateIni.info.vers_text then
                 local remoteVers = tonumber(updateIni.info.vers)
                 if remoteVers and remoteVers > script_vers then
-                    sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Имеется {32CD32}новая {FFFFFF}версия скрипта. Версия: {32CD32}" .. updateIni.info.vers_text .. ". {FFFFFF}Введите /update, чтобы обновить.", -1)
-                    update_found = true -- Обновление найдено
+                    sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Доступна новая версия: {32CD32}" .. updateIni.info.vers_text .. ". {FFFFFF}Введите /update.", -1)
+                    update_found = true
                     logToFile("Найдена новая версия: " .. updateIni.info.vers_text)
                 else
-                    sampAddChatMessage(CONFIG.tag .. "{FFFFFF}У вас последняя версия скрипта: " .. script_vers_text, -1)
                     logToFile("Версия актуальна: " .. script_vers_text)
                 end
             else
-                sampAddChatMessage(CONFIG.tag .. "{FF0000}Ошибка: Не удалось загрузить информацию об обновлении.", -1)
-                logToFile("Ошибка загрузки update.ini")
+                logToFile("Ошибка: update.ini повреждён или пуст")
             end
             os.remove(update_path)
         elseif status == dlstatus.STATUS_DOWNLOADERROR then
-            sampAddChatMessage(CONFIG.tag .. "{FF0000}Ошибка: Не удалось проверить обновления.", -1)
             logToFile("Ошибка проверки обновлений: download error")
         end
     end)
@@ -98,6 +110,7 @@ local STATE = {
     floodCooldown = 0,
     scriptStartTime = os.clock(),
     floodCount = 0,
+    initialized = false,
 }
 
 -- Настройки интерфейса и поведения
@@ -116,13 +129,15 @@ local SETTINGS = {
     cursorVisible = false,
     mainWindowState = new.bool(false),
     infoWindowState = new.bool(false),
-    activeTab = new.int(0),
+    activeState = new.bool(false),
     disableAutoStartOnToggle = false,
     selectedTheme = new.int(0),
     useFloodPause = new.bool(true),
     autoUpdateEnabled = new.bool(true),
     logActionsEnabled = new.bool(true),
-    selectedProfile = new.int(0), -- Текущий выбранный профиль (0 = Профиль 1, 1 = Профиль 2, 2 = Профиль 3)
+    pauseOnFlood = new.bool(false),
+    activeTab = new.int(0),
+    selectedProfile = new.int(0),
 }
 
 -- Предопределённые цветовые темы
@@ -260,27 +275,34 @@ SETTINGS.selectedProfile[0] = ini.main.selectedProfile or 0
 function main()
     if not isSampLoaded() or not isSampfuncsLoaded() then return end
     while not isSampAvailable() do wait(100) end
+
+    -- Проверяем, была ли уже инициализация
+    if STATE.initialized then return end
+    STATE.initialized = true
+
     sampRegisterChatCommand("arep", cmd_arep)
     sampRegisterChatCommand("update", cmd_update)
-    sampAddChatMessage(CONFIG.tag .. 'Скрипт {00FF00}загружен.{FFFFFF} Активация меню: {00FF00}/arep', -1)
+    sampRegisterChatCommand("showinfo", showInfoWindow)
+    sampRegisterChatCommand("hideinfo", showInfoWindowOff)
+
+    -- Единое сообщение при запуске
+    sampAddChatMessage(CONFIG.tag .. "Скрипт {00FF00}загружен.{FFFFFF} Меню: {00FF00}/arep{FFFFFF}", -1)
     logToFile("Скрипт загружен")
 
-    -- Загружаем настройки из выбранного профиля
+    -- Загружаем настройки из профиля
     loadSettingsFromProfile()
 
-    -- Проверка обновлений при запуске, если включено
+    -- Проверка обновлений
     if SETTINGS.autoUpdateEnabled[0] then
-        sampAddChatMessage(CONFIG.tag .. "Проверка обновлений...", -1)
+        logToFile("Проверка обновлений...")
         check_update()
-    else
-        sampAddChatMessage(CONFIG.tag .. "Автоматическая проверка обновлений отключена", -1)
     end
 
-    local lastMoveCheck = 0 -- Для проверки нажатия пробела
-    local moveCheckInterval = 50 -- Проверяем пробел раз в 50 мс
+    local lastMoveCheck = 0
+    local moveCheckInterval = 50
 
     while true do
-        wait(0) -- Уменьшаем wait для более плавного обновления
+        wait(0)
         checkPauseAndDisableAutoStart()
         checkAutoStart()
         imgui.Process = SETTINGS.mainWindowState[0] and not STATE.gameMinimized
@@ -351,6 +373,17 @@ function resetIO()
     io.KeySuper = false
 end
 
+function imgui.ShowHelpMarker(desc)
+    imgui.TextDisabled("(?)")
+    if imgui.IsItemHovered() then
+        imgui.BeginTooltip()
+        imgui.PushTextWrapPos(imgui.GetFontSize() * 35.0)
+        imgui.TextUnformatted(desc)
+        imgui.PopTextWrapPos()
+        imgui.EndTooltip()
+    end
+end
+
 -- Активация режима перемещения окна
 function startMovingWindow()
     STATE.moveWidget = true
@@ -406,6 +439,16 @@ function onToggleActive()
     local status = STATE.active and '{00FF00}включена' or '{FF0000}выключена'
     local statusArz = STATE.active and 'включена' or 'выключена'
     logToFile("Ловля " .. statusArz)
+    if SETTINGS.activeState then
+        SETTINGS.activeState[0] = STATE.active
+    end
+end
+
+function onKeyDown(key)
+    if not STATE.changingKey and key == STATE.keyBind and not isSampfuncsConsoleActive() and
+       not sampIsChatInputActive() and not sampIsDialogActive() and not isPauseMenuActive() then
+        onToggleActive()
+    end
 end
 
 -- Сохранение настроек окна
@@ -417,18 +460,24 @@ function saveWindowSettings()
 end
 
 function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
-    if dialogId == 1334 and SETTINGS.dialogHandlerEnabled[0] then
-        STATE.lastDialogTime = os.clock() -- Сброс таймера при появлении диалога
-        STATE.reportAnsweredCount = STATE.reportAnsweredCount + 1 -- Увеличиваем счетчик
-        sampAddChatMessage(CONFIG.tag .. '{00FF00}Репорт принят, отключаю ловлю! Отвечено репорта: ' .. STATE.reportAnsweredCount, -1)
-        logToFile("Репорт принят, всего: " .. STATE.reportAnsweredCount)
-        -- Логируем информацию о репорте
-        local playerName = text:match("(%w+_%w+)%[") or "Неизвестный"
-        logReport(playerName, text)
-        if STATE.active then
-            STATE.active = false
-            sampAddChatMessage(CONFIG.tag .. "Ловля отключена из-за принятия репорта", -1)
-            logToFile("Ловля отключена из-за принятия репорта")
+    if dialogId == 1334 then
+        if SETTINGS.dialogHandlerEnabled[0] then
+            STATE.lastDialogTime = os.clock() -- Сброс таймера при появлении диалога
+            STATE.reportAnsweredCount = STATE.reportAnsweredCount + 1 -- Увеличиваем счетчик
+            sampAddChatMessage(CONFIG.tag .. '{00FF00}Репорт принят, отключаю ловлю! Отвечено репорта: ' .. STATE.reportAnsweredCount, -1)
+            logToFile("Репорт принят, всего: " .. STATE.reportAnsweredCount)
+            -- Логируем информацию о репорте
+            local playerName = text:match("(%w+_%w+)%[") or "Неизвестный"
+            logReport(playerName, text)
+            if STATE.active then
+                STATE.active = false
+                sampAddChatMessage(CONFIG.tag .. "Ловля отключена из-за принятия репорта", -1)
+                logToFile("Ловля отключена из-за принятия репорта")
+            end
+        else
+            -- Логируем, что диалог проигнорирован, но ловля продолжается
+            logToFile("Диалог 1334 проигнорирован (обработка отключена), ловля активна: " .. tostring(STATE.active))
+            sampAddChatMessage(CONFIG.tag .. "Диалог репорта обнаружен, но обработка отключена. Ловля продолжается.", -1)
         end
     end
 end
@@ -448,10 +497,11 @@ end
 
 -- Сохранение общих настроек
 function saveSettings()
+    -- Сохраняем настройки в ini.main
     ini.main.otInterval = SETTINGS.otInterval[0]
     ini.main.dialogTimeout = SETTINGS.dialogTimeout[0]
     ini.main.floodPause = SETTINGS.floodPause[0]
-    ini.main.useMilliseconds = SETTINGS.useMilliseconds[0] == true -- Преобразуем в true/false
+    ini.main.useMilliseconds = SETTINGS.useMilliseconds[0] == true
     ini.main.dialogHandlerEnabled = SETTINGS.dialogHandlerEnabled[0] == true
     ini.main.autoStartEnabled = SETTINGS.autoStartEnabled[0] == true
     ini.main.otklflud = SETTINGS.hideFloodMsg[0] == true
@@ -460,7 +510,15 @@ function saveSettings()
     ini.main.autoUpdateEnabled = SETTINGS.autoUpdateEnabled[0] == true
     ini.main.logActionsEnabled = SETTINGS.logActionsEnabled[0] == true
     ini.main.selectedProfile = SETTINGS.selectedProfile[0]
+    ini.main.pauseOnFlood = SETTINGS.pauseOnFlood[0] == true
+
+    -- Сохраняем в общий файл настроек
     inicfg.save(ini, CONFIG.iniFilename)
+
+    -- Автоматически сохраняем в текущий профиль
+    local profileName = "profile_" .. (SETTINGS.selectedProfile[0] + 1)
+    inicfg.save(ini, "moonloader/" .. profileName .. ".ini")
+    logToFile("Настройки автоматически сохранены в профиль: Профиль " .. (SETTINGS.selectedProfile[0] + 1))
 end
 
 -- Отрисовка ссылки
@@ -561,6 +619,8 @@ function drawSettingsTab()
     local panelColor = COLORS.childPanel
     imgui.Text(faicons('gear') .. u8" Настройки  /  " .. faicons('sliders') .. u8" Основные настройки")
     imgui.Separator()
+
+    -- Клавиша активации
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("KeyBind", imgui.ImVec2(0, 60), true) then
         imgui.Text(u8'Текущая клавиша активации:')
@@ -569,37 +629,50 @@ function drawSettingsTab()
             STATE.changingKey = true
             sampAddChatMessage(CONFIG.tag .. "Нажмите новую клавишу активации", -1)
         end
+        imgui.SameLine()
+        imgui.ShowHelpMarker(u8"Клавиша для включения/выключения ловли. Нажмите кнопку, чтобы изменить.")
     end
     imgui.EndChild()
     imgui.PopStyleColor()
 
+    -- Обработка диалогов
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("DialogOptions", imgui.ImVec2(0, 110), true) then
         imgui.Text(u8"Обработка диалогов")
         if imgui.Checkbox(u8'Обрабатывать диалоги', SETTINGS.dialogHandlerEnabled) then
             saveSettings() -- Сохраняем все настройки
         end
+        imgui.SameLine()
+        imgui.ShowHelpMarker(u8"Если включено, скрипт будет обрабатывать диалог репорта (ID 1334) и отключать ловлю при его появлении.")
         if imgui.Checkbox(u8'Автостарт ловли', SETTINGS.autoStartEnabled) then
             saveSettings() -- Сохраняем все настройки
         end
+        imgui.SameLine()
+        imgui.ShowHelpMarker(u8"Автоматически включает ловлю после тайм-аута, если нет активности.")
     end
     imgui.EndChild()
     imgui.PopStyleColor()
 
+    -- Настройки флуда
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("FloodOptions", imgui.ImVec2(0, 110), true) then
         imgui.Text(u8"Настройки флуда")
         if imgui.Checkbox(u8'Скрыть "Не флуди"', SETTINGS.hideFloodMsg) then
             saveSettings() -- Сохраняем все настройки
         end
+        imgui.SameLine()
+        imgui.ShowHelpMarker(u8"Скрывает сообщения о флуде в чате и активирует паузу при обнаружении флуда.")
         if imgui.Checkbox(u8'Использовать паузу после флуда', SETTINGS.useFloodPause) then
             saveSettings() -- Сохраняем все настройки
             sampAddChatMessage(CONFIG.tagInfo .. "Пауза после флуда: {32CD32}" .. (SETTINGS.useFloodPause[0] and "включена" or "выключена"), -1)
         end
+        imgui.SameLine()
+        imgui.ShowHelpMarker(u8"Приостанавливает отправку /ot на заданное время после сообщения о флуде.")
     end
     imgui.EndChild()
     imgui.PopStyleColor()
 
+    -- Обновления
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("UpdateOptions", imgui.ImVec2(0, 110), true) then
         imgui.Text(u8"Обновления")
@@ -607,16 +680,21 @@ function drawSettingsTab()
             saveSettings() -- Сохраняем все настройки
             sampAddChatMessage(CONFIG.tagInfo .. "Автообновление: {32CD32}" .. (SETTINGS.autoUpdateEnabled[0] and "включено" or "выключено"), -1)
         end
+        imgui.SameLine()
+        imgui.ShowHelpMarker(u8"Проверяет наличие обновлений при запуске скрипта.")
         imgui.Text(u8'Ручная проверка:')
         imgui.SameLine()
         if imgui.Button(u8'Проверить') then
             sampAddChatMessage(CONFIG.tag .. "Проверка обновлений...", -1)
             check_update()
         end
+        imgui.SameLine()
+        imgui.ShowHelpMarker(u8"Проверяет обновления прямо сейчас.")
     end
     imgui.EndChild()
     imgui.PopStyleColor()
 
+    -- Логирование
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("LoggingOptions", imgui.ImVec2(0, 80), true) then
         imgui.Text(u8"Логирование")
@@ -624,13 +702,18 @@ function drawSettingsTab()
             saveSettings() -- Сохраняем все настройки
             sampAddChatMessage(CONFIG.tagInfo .. "Логирование действий: {32CD32}" .. (SETTINGS.logActionsEnabled[0] and "включено" or "выключено"), -1)
         end
+        imgui.SameLine()
+        imgui.ShowHelpMarker(u8"Записывает все действия скрипта в файл repflow.log.")
     end
     imgui.EndChild()
     imgui.PopStyleColor()
 
+    -- Тайм-аут автостарта
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("AutoStartTimeout", imgui.ImVec2(0, 100), true) then
         imgui.Text(u8'Тайм-аут автостарта (сек):')
+        imgui.SameLine()
+        imgui.ShowHelpMarker(u8"Время ожидания перед автоматическим включением ловли после диалога.")
         imgui.Text(u8'Текущий: ' .. SETTINGS.dialogTimeout[0])
         imgui.PushItemWidth(45)
         imgui.InputText(u8'##dialogTimeoutInput', SETTINGS.dialogTimeoutBuffer, ffi.sizeof(SETTINGS.dialogTimeoutBuffer))
@@ -650,6 +733,7 @@ function drawSettingsTab()
     imgui.EndChild()
     imgui.PopStyleColor()
 
+    -- Положение окна
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("WindowPosition", imgui.ImVec2(0, 60), true) then
         imgui.Text(u8'Положение инфо-окна:')
@@ -657,36 +741,37 @@ function drawSettingsTab()
         if imgui.Button(u8'Изменить') then
             startMovingWindow()
         end
+        imgui.SameLine()
+        imgui.ShowHelpMarker(u8"Позволяет переместить информационное окно на экране.")
     end
     imgui.EndChild()
     imgui.PopStyleColor()
 
+    -- Профиль настроек
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
-    if imgui.BeginChild("ProfileOptions", imgui.ImVec2(0, 90), true) then
+    if imgui.BeginChild("ProfileOptions", imgui.ImVec2(0, 75), true) then
         imgui.Text(u8'Профиль настроек:')
+        imgui.SameLine()
+        imgui.ShowHelpMarker(u8"Выберите профиль для загрузки настроек. Изменения автоматически сохраняются в текущий профиль.")
         local profiles = { u8"Профиль 1", u8"Профиль 2", u8"Профиль 3" }
         local cProfiles = ffi.new("const char*[?]", #profiles)
         for i, name in ipairs(profiles) do cProfiles[i - 1] = name end
         if imgui.Combo(u8'##ProfileSelector', SETTINGS.selectedProfile, cProfiles, #profiles) then
             ini.main.selectedProfile = SETTINGS.selectedProfile[0]
-            saveSettings() -- Сохраняем все настройки
+            saveSettings() -- Сохраняем настройки и в профиль
             loadSettingsFromProfile()
-        end
-        imgui.SameLine()
-        if imgui.Button(u8'Сохранить профиль') then
-            local profileName = "profile_" .. (SETTINGS.selectedProfile[0] + 1)
-            inicfg.save(ini, "moonloader/" .. profileName .. ".ini")
-            saveSettings() -- Сохраняем все настройки
-            sampAddChatMessage(CONFIG.tag .. "Профиль сохранён: Профиль " .. (SETTINGS.selectedProfile[0] + 1), -1)
-            logToFile("Профиль сохранён: Профиль " .. (SETTINGS.selectedProfile[0] + 1))
+            sampAddChatMessage(CONFIG.tag .. "Загружен профиль: Профиль " .. (SETTINGS.selectedProfile[0] + 1), -1)
         end
     end
     imgui.EndChild()
     imgui.PopStyleColor()
 
+    -- Цветовая схема
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("ColorScheme", imgui.ImVec2(0, 100), true) then
         imgui.Text(u8'Цветовая схема:')
+        imgui.SameLine()
+        imgui.ShowHelpMarker(u8"Выберите тему оформления интерфейса.")
         local themeNames = {}
         for i, theme in ipairs(COLOR_THEMES) do
             themeNames[i] = u8(theme.name)
@@ -706,6 +791,18 @@ function drawSettingsTab()
     imgui.PopStyleColor()
 end
 
+sampRegisterChatCommand("arepstats", function()
+    local elapsedTime = os.clock() - STATE.scriptStartTime
+    local successRate = STATE.reportAttempts > 0 and (STATE.reportAnsweredCount / STATE.reportAttempts * 100) or 0
+    sampAddChatMessage(CONFIG.tag .. "Статистика RepFlow:", -1)
+    sampAddChatMessage(CONFIG.tag .. "Время работы: " .. string.format("%.2f сек", elapsedTime), -1)
+    sampAddChatMessage(CONFIG.tag .. "Попыток: " .. STATE.reportAttempts, -1)
+    sampAddChatMessage(CONFIG.tag .. "Принято репортов: " .. STATE.reportAnsweredCount, -1)
+    sampAddChatMessage(CONFIG.tag .. "Успешность: " .. string.format("%.1f%%", successRate), -1)
+    sampAddChatMessage(CONFIG.tag .. "Обнаружено флудов: " .. STATE.floodCount, -1)
+    logToFile("Пользователь запросил статистику через /arepstats")
+end)
+
 function logReport(playerName, reportText)
     local reportFile = io.open("moonloader/repflow_reports.log", "a")
     if reportFile then
@@ -722,14 +819,16 @@ function filterFloodMessage(text)
             STATE.floodCooldown = os.clock() * 1000 + (SETTINGS.floodPause[0] * 1000)
             sampAddChatMessage(CONFIG.tag .. "Флуд, пауза на " .. SETTINGS.floodPause[0] .. " сек", -1)
             logToFile("Флуд, пауза на " .. SETTINGS.floodPause[0] .. " сек")
-        else
-            sampAddChatMessage(CONFIG.tag .. "Флуд обнаружен, пауза отключена", -1)
-            logToFile("Флуд обнаружен, пауза отключена")
+        end
+        if SETTINGS.pauseOnFlood[0] then
+            STATE.active = false -- Отключаем ловлю при флуде
+            SETTINGS.activeState[0] = false
+            sampAddChatMessage(CONFIG.tag .. "{FF0000}Ловля отключена из-за флуда!", -1)
+            logToFile("Ловля отключена из-за флуда")
         end
         return false
-    elseif SETTINGS.hideFloodMsg[0] and text:find("%[Ошибка%] {FFFFFF}Сейчас нет вопросов в репорт!") then
-        return false
     end
+    return true
 end
 
 -- Проверка сворачивания игры
@@ -752,30 +851,43 @@ function checkPauseAndDisableAutoStart()
     end
 end
 
--- Вкладка "Информация"
 function drawInfoTab()
-    imgui.Text(faicons('star') .. u8" RepFlow  /  " .. faicons('user') .. u8" Информация")
+    imgui.Text(faicons('star') .. u8" RepFlow  /  " .. faicons('circle_info') .. u8" Информация") -- Новая иконка
     imgui.Separator()
     local panelColor = COLORS.childPanel
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
-    if imgui.BeginChild("Info", imgui.ImVec2(0, 400), true) then
+    if imgui.BeginChild("Info", imgui.ImVec2(0, -1), true) then
+        -- Основная информация
         imgui.Text(u8"RepFlow v" .. CONFIG.scriptVersion .. " by Matthew_McLaren[18]")
         imgui.Text(u8"Скрипт для автоматической ловли репортов на серверах Arizona RP.")
+        
+        -- Функции
         imgui.Separator()
         imgui.Text(u8"Основные функции:")
-        imgui.TextWrapped(u8"- Автоматическая отправка команды /ot с настраиваемым интервалом.")
-        imgui.TextWrapped(u8"- Обнаружение репортов в чате по ключевой фразе '[Репорт] от Имя_Фамилия'.")
-        imgui.TextWrapped(u8"- Автоматическая обработка диалога 1334 для принятия репортов.")
-        imgui.TextWrapped(u8"- Статистика: попытки, принятые репорты, флуды.")
-        imgui.TextWrapped(u8"- Поддержка профилей настроек и цветовых тем.")
+        imgui.BulletText(u8"Автоматическая отправка команды /ot с настраиваемым интервалом.")
+        imgui.BulletText(u8"Обнаружение репортов в чате по ключевой фразе '[Репорт] от Имя_Фамилия'.")
+        imgui.BulletText(u8"Автоматическая обработка диалога 1334 для принятия репортов.")
+        imgui.BulletText(u8"Подробная статистика: попытки, принятые репорты, флуды.")
+        imgui.BulletText(u8"Поддержка профилей настроек и цветовых тем.")
+        
+        -- Ссылки
         imgui.Separator()
         imgui.Text(u8"Ссылки:")
         imgui.Link(u8"https://blast.hk/threads/12345", u8"Тема на blast.hk")
         imgui.Link(u8"https://github.com/Zorahm/RepFlow", u8"GitHub-репозиторий")
+        
+        -- Благодарности
         imgui.Separator()
         imgui.Text(u8"Благодарности:")
-        imgui.Text(u8"Тестеры: Carl_Mort[18], Sweet_Lemonte[18], Balenciaga_Collins[18].")
-        imgui.Text(u8"Связь с автором: Telegram @Zorahm")
+        imgui.TextWrapped(u8"Тестеры: Carl_Mort[18], Sweet_Lemonte[18], Balenciaga_Collins[18].")
+        
+        -- Связь с автором
+        imgui.Text(u8"Связь с автором:")
+        imgui.SameLine()
+        imgui.Link(u8"https://t.me/zorahm", u8"Telegram")
+        
+        -- Актуальность
+        imgui.Text(u8"Скрипт активно поддерживается. Следите за обновлениями!")
     end
     imgui.EndChild()
     imgui.PopStyleColor()
@@ -783,15 +895,33 @@ end
 
 function drawStatsTab()
     local panelColor = COLORS.childPanel
-    imgui.Text(faicons('star') .. u8" RepFlow  /  " .. faicons('user') .. u8" Статистика")
+    imgui.Text(faicons('star') .. u8" RepFlow  /  " .. faicons('chart_bar') .. u8" Статистика") -- Изменили иконку на более подходящую
     imgui.Separator()
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
     if imgui.BeginChild("Stats", imgui.ImVec2(0, -1), true) then
-        imgui.Text(u8"Общее время работы: " .. string.format("%.2f", os.clock() - STATE.scriptStartTime) .. u8" сек")
-        imgui.Text(u8"Попыток отправки /ot: " .. STATE.reportAttempts)
-        imgui.Text(u8"Принято репортов: " .. STATE.reportAnsweredCount)
-        imgui.Text(u8"Обнаружено флудов: " .. STATE.floodCount)
-        if imgui.Button(u8"Сбросить статистику") then
+        -- Общее время работы
+        imgui.Text(faicons('clock') .. u8" Общее время работы: " .. string.format("%.2f", os.clock() - STATE.scriptStartTime) .. u8" сек")
+        
+        -- Попытки отправки /ot
+        imgui.Text(faicons('paper_plane') .. u8" Попыток отправки /ot: " .. STATE.reportAttempts)
+        
+        -- Принято репортов
+        imgui.Text(faicons('circle_check') .. u8" Принято репортов: " .. STATE.reportAnsweredCount)
+        
+        -- Обнаружено флудов
+        imgui.Text(faicons('triangle_exclamation') .. u8" Обнаружено флудов: " .. STATE.floodCount)
+        
+        -- Среднее время между попытками
+        if STATE.reportAttempts > 0 then
+            local totalTime = os.clock() - STATE.scriptStartTime
+            local avgTime = totalTime / STATE.reportAttempts
+            imgui.Text(faicons('square_poll_horizontal') .. u8" Среднее время между /ot: " .. string.format("%.2f", avgTime) .. u8" сек")
+        else
+            imgui.Text(faicons('square_poll_horizontal') .. u8" Среднее время между /ot: N/A")
+        end
+        
+        -- Кнопка сброса статистики
+        if imgui.Button(u8"Сбросить статистику", imgui.ImVec2(-1, 30)) then -- Ширина кнопки на всю доступную область
             STATE.reportAttempts = 0
             STATE.reportAnsweredCount = 0
             STATE.floodCount = 0
@@ -799,6 +929,8 @@ function drawStatsTab()
             sampAddChatMessage(CONFIG.tag .. "Статистика сброшена", -1)
             logToFile("Статистика сброшена")
         end
+        
+        imgui.Dummy(imgui.ImVec2(0, 10))
     end
     imgui.EndChild()
     imgui.PopStyleColor()
@@ -869,7 +1001,7 @@ imgui.OnFrame(function() return SETTINGS.mainWindowState[0] end, function(player
     end
     imgui.End()
     -- Убираем все стили
-    imgui.PopStyleColor(9) -- Соответствует количеству PushStyleColor
+    imgui.PopStyleColor(9)
 end)
 
 -- Обработка смены клавиши
@@ -896,6 +1028,7 @@ function imgui.CenterText(text)
     imgui.SetCursorPosX(width / 2 - calc.x / 2)
     imgui.Text(text)
 end
+
 function loadSettingsFromProfile()
     local profileName = "profile_" .. (SETTINGS.selectedProfile[0] + 1)
     local profileIni = inicfg.load(defaultConfig, "moonloader/" .. profileName .. ".ini")
@@ -928,36 +1061,104 @@ function loadSettingsFromProfile()
     ini.main.autoUpdateEnabled = SETTINGS.autoUpdateEnabled[0]
     ini.main.logActionsEnabled = SETTINGS.logActionsEnabled[0]
     ini.main.selectedProfile = SETTINGS.selectedProfile[0]
+    ini.main.pauseOnFlood = SETTINGS.pauseOnFlood[0]
 
-    inicfg.save(ini, CONFIG.iniFilename) -- Сохраняем обновлённые настройки
+    inicfg.save(ini, CONFIG.iniFilename)
     sampAddChatMessage(CONFIG.tag .. "Загружен профиль: Профиль " .. (SETTINGS.selectedProfile[0] + 1), -1)
     logToFile("Загружен профиль: Профиль " .. (SETTINGS.selectedProfile[0] + 1))
 end
 
--- Отрисовка информационного окна
 imgui.OnFrame(function() return SETTINGS.infoWindowState[0] end, function(self)
     self.HideCursor = true
-    imgui.SetNextWindowSize(imgui.ImVec2(220, 200), imgui.Cond.FirstUseEver)
+
+    imgui.SetNextWindowSize(imgui.ImVec2(260, 350), imgui.Cond.FirstUseEver) -- Увеличиваем высоту до 350
     imgui.SetNextWindowPos(imgui.ImVec2(ini.widget.posX, ini.widget.posY), imgui.Cond.Always)
-    imgui.Begin(faicons('star') .. u8" | Информация ", SETTINGS.infoWindowState, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoCollapse)
-    imgui.CenterText(u8'Статус: ' .. (STATE.active and u8'Включена' or u8'Выключена'))
+
+    imgui.Begin(faicons('star') .. u8" | RepFlow ", SETTINGS.infoWindowState, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoCollapse)
+
+    -- Заголовок
+    imgui.PushStyleColor(imgui.Col.Text, COLORS.text)
+    imgui.Text(faicons('bolt') .. u8" Статус")
+    imgui.PopStyleColor()
+    imgui.SameLine()
+    imgui.SetCursorPosX(imgui.GetWindowWidth() - 30) -- Позиция для HelpMarker
+    imgui.ShowHelpMarker(u8"Текущий статус ловли и статистика.")
+
+    -- Статус с анимацией и кликабельностью
+    local statusColor = STATE.active and imgui.ImVec4(0.0, 1.0, 0.0, 1.0) or imgui.ImVec4(1.0, 0.0, 0.0, 1.0)
+    if STATE.active then
+        local alpha = 0.8 + math.sin(os.clock() * 4) * 0.2
+        statusColor.w = alpha
+    end
+    imgui.PushStyleColor(imgui.Col.Text, statusColor)
+    if imgui.Button(u8(STATE.active and 'Включена' or 'Выключена'), imgui.ImVec2(imgui.GetWindowWidth() - 40, 30)) then
+        STATE.active = not STATE.active
+        if SETTINGS.activeState then -- Проверяем, существует ли activeState
+            SETTINGS.activeState[0] = STATE.active
+        end
+        if STATE.active then
+            STATE.startTime = os.clock()
+            STATE.lastOtTime = os.clock() * 1000
+            sampAddChatMessage(CONFIG.tag .. "Ловля активирована", -1)
+            logToFile("Ловля активирована")
+        else
+            sampAddChatMessage(CONFIG.tag .. "Ловля деактивирована", -1)
+            logToFile("Ловля деактивирована")
+        end
+    end
+    imgui.SetCursorPosX((imgui.GetWindowWidth() - imgui.CalcTextSize(u8(STATE.active and 'Включена' or 'Выключена')).x) / 2)
+    imgui.PopStyleColor()
+
+    -- Время работы
+    local style = imgui.GetStyle()
+    imgui.SetCursorPosX(style.WindowPadding.x) -- Выравниваем с учётом отступа окна
     local elapsedTime = os.clock() - STATE.startTime
-    imgui.Text(string.format(u8'Время: %.2f сек', elapsedTime))
-    imgui.Text(string.format(u8'Попыток: %d', STATE.reportAttempts))
-    imgui.Text(string.format(u8'Принято: %d', STATE.reportAnsweredCount))
+    imgui.Text(faicons('clock') .. u8"  Время работы: " .. string.format(u8'%.2f сек', elapsedTime))
+
+    -- Статистика с иконками
+    imgui.Text(faicons('file') .. u8"  Попыток: " .. STATE.reportAttempts)
+    imgui.Text(faicons('circle_check') .. u8"  Принято: " .. STATE.reportAnsweredCount)
+
+    -- Процент успешных репортов
+    local successRate = STATE.reportAttempts > 0 and (STATE.reportAnsweredCount / STATE.reportAttempts * 100) or 0
+    imgui.Text(faicons('percent') .. u8"  Успешность: " .. string.format(u8'%.1f%%', successRate))
+
+    imgui.Dummy(imgui.ImVec2(0, 10))
+
+    -- Дополнительная информация
     imgui.Separator()
-    imgui.Text(u8'Диалоги: ' .. (SETTINGS.dialogHandlerEnabled[0] and u8'Вкл' or u8'Выкл'))
-    imgui.Text(u8'Автостарт: ' .. (SETTINGS.autoStartEnabled[0] and u8'Вкл' or u8'Выкл'))
+    imgui.Text(faicons('window_maximize') .. u8"  Диалоги: " .. (SETTINGS.dialogHandlerEnabled[0] and u8'Вкл' or u8'Выкл'))
+    imgui.Text(faicons('circle_play') .. u8"  Автостарт: " .. (SETTINGS.autoStartEnabled[0] and u8'Вкл' or u8'Выкл'))
+    imgui.Text(faicons('clock') .. u8"  Интервал: " .. SETTINGS.otInterval[0] .. u8' мс')
+
+    -- Пауза с прогресс-баром
+    if STATE.floodCooldown > os.clock() * 1000 and SETTINGS.useFloodPause[0] then
+        local remainingTime = math.max(0, (STATE.floodCooldown - os.clock() * 1000) / 1000)
+        local totalTime = SETTINGS.floodPause[0]
+        local progress = 1.0 - (remainingTime / totalTime)
+        imgui.PushStyleColor(imgui.Col.PlotHistogram, imgui.ImVec4(1.0, 0.5, 0.0, 1.0))
+        imgui.Text(faicons('circle_pause') .. u8"  Пауза: " .. string.format(u8'%.1f сек', remainingTime))
+        imgui.ProgressBar(progress, imgui.ImVec2(-1, 15), u8"")
+        imgui.PopStyleColor()
+    end
     imgui.End()
 end)
 
 -- Управление видимостью информационного окна
 function showInfoWindow()
-    SETTINGS.infoWindowState[0] = true
+    if not SETTINGS.infoWindowState[0] then
+        SETTINGS.infoWindowState[0] = true
+        ini.widget.visible = true
+        inicfg.save(ini, CONFIG.iniFilename)
+    end
 end
 
 function showInfoWindowOff()
-    SETTINGS.infoWindowState[0] = false
+    if SETTINGS.infoWindowState[0] then
+        SETTINGS.infoWindowState[0] = false
+        ini.widget.visible = false
+        inicfg.save(ini, CONFIG.iniFilename)
+    end
 end
 
 -- Функция логирования
