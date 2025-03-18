@@ -75,7 +75,7 @@ local update_found = false
 local script_vers = 3.71
 local script_vers_text = "3.7.1"
 
-local update_url = "https://raw.githubusercontent.com/Zorahm/repflow/main/update.ini"
+local update_url = "https://raw.githubusercontent.com/Zorahm/repflow/main/update.ini?t=" .. os.time()
 local update_path = getWorkingDirectory() .. "/update.ini"
 
 local script_url = "https://raw.githubusercontent.com/Zorahm/repflow/main/!RepFlow.lua"
@@ -86,35 +86,46 @@ function check_update(callback)
     local maxRetries = 3
     local retryCount = 0
     local downloadInProgress = false
-    local tempFilePath = os.tmpname() -- Используем временный файл
+    local tempFilePath = os.tmpname()
 
     local function attemptDownload()
         if downloadInProgress then return end
         downloadInProgress = true
 
+        logToFile("Попытка загрузки update.ini с URL: " .. update_url)
         downloadUrlToFile(update_url, tempFilePath, function(id, status)
             if status == dlstatus.STATUS_ENDDOWNLOADDATA then
+                logToFile("update.ini успешно загружен, путь: " .. tempFilePath)
                 local fileSize = lfs and lfs.attributes(tempFilePath, "size") or 1
+                logToFile("Размер загруженного файла: " .. (fileSize or "н/д"))
                 if fileSize and fileSize > 0 then
                     local updateIni = inicfg.load(nil, tempFilePath)
-                    if updateIni and updateIni.info and updateIni.info.vers and updateIni.info.vers_text then
-                        local remoteVers = tonumber(updateIni.info.vers)
-                        if remoteVers and remoteVers > script_vers then
-                            sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Доступна новая версия: {32CD32}" .. updateIni.info.vers_text .. ". {FFFFFF}Введите /update.", -1)
-                            update_found = true
-                            logToFile("Найдена новая версия: " .. updateIni.info.vers_text)
+                    if updateIni then
+                        logToFile("update.ini успешно распарсен")
+                        if updateIni.info and updateIni.info.vers and updateIni.info.vers_text then
+                            local remoteVers = tonumber(updateIni.info.vers)
+                            logToFile("Прочитано из update.ini: vers=" .. updateIni.info.vers .. ", vers_text=" .. updateIni.info.vers_text)
+                            logToFile("Сравнение версий: локальная=" .. script_vers .. ", удалённая=" .. (remoteVers or "н/д"))
+                            if remoteVers and remoteVers > script_vers then
+                                sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Доступна новая версия: {32CD32}" .. updateIni.info.vers_text .. ". {FFFFFF}Введите /update.", -1)
+                                update_found = true
+                                logToFile("Найдена новая версия: " .. updateIni.info.vers_text)
+                            else
+                                logToFile("Текущая версия (" .. script_vers .. ") актуальна или новее, чем удалённая (" .. (remoteVers or "н/д") .. ")")
+                            end
                         else
-                            logToFile("Версия актуальна: " .. script_vers_text)
+                            logToFile("Ошибка: update.ini имеет неверную структуру или отсутствуют поля vers/vers_text")
+                            sampAddChatMessage(CONFIG.tag .. "{FF0000}Ошибка: Неверный формат файла обновлений.", -1)
                         end
                     else
-                        logToFile("Ошибка: update.ini имеет неверную структуру или отсутствуют поля vers/vers_text")
-                        sampAddChatMessage(CONFIG.tag .. "{FF0000}Ошибка: Неверный формат файла обновлений.", -1)
+                        logToFile("Ошибка: Не удалось распарсить update.ini")
+                        sampAddChatMessage(CONFIG.tag .. "{FF0000}Ошибка: Не удалось прочитать файл обновлений.", -1)
                     end
                 else
                     logToFile("Ошибка: Загружен пустой или повреждённый update.ini")
                     sampAddChatMessage(CONFIG.tag .. "{FF0000}Ошибка: Файл обновлений пуст или повреждён.", -1)
                 end
-                os.remove(tempFilePath) -- Удаляем временный файл после использования
+                os.remove(tempFilePath)
                 downloadInProgress = false
                 if callback then callback(update_found) end
             elseif status == dlstatus.STATUS_DOWNLOADERROR then
@@ -126,7 +137,7 @@ function check_update(callback)
                 else
                     logToFile("Не удалось загрузить update.ini после " .. maxRetries .. " попыток")
                     sampAddChatMessage(CONFIG.tag .. "{FF0000}Не удалось проверить обновления после " .. maxRetries .. " попыток.", -1)
-                    os.remove(tempFilePath) -- Пробуем удалить, если файл создан
+                    os.remove(tempFilePath)
                     downloadInProgress = false
                     if callback then callback(false) end
                 end
@@ -609,8 +620,10 @@ function cmd_update(arg)
         sampAddChatMessage(CONFIG.tag .. "Проверка доступных обновлений...", -1)
         logToFile("Пользователь инициировал проверку обновлений через /update")
         check_update(function(found)
+            update_found = found
             if found then
                 sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Найдена новая версия. Начинается обновление...", -1)
+                logToFile("Обновление найдено, запуск performUpdate")
                 performUpdate()
             else
                 sampAddChatMessage(CONFIG.tag .. "{FF0000}Обновлений нет или проверка завершилась с ошибкой.", -1)
