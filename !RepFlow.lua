@@ -8,11 +8,12 @@ local ffi = require 'ffi'
 local faicons = require 'fAwesome6'
 local requests = require 'requests'
 local dlstatus = require('moonloader').download_status
+local lfs = require("lfs")
 
 -- Конфигурация скрипта
 local CONFIG = {
     iniFilename = 'RepFlowCFG.ini',
-    scriptVersion = "3.7 | Premium",
+    scriptVersion = "3.7.1 | Premium",
     defaultKeyBind = 0x5A,
     defaultKeyBindName = 'Z',
     afkCooldown = 30,
@@ -25,6 +26,20 @@ local new = imgui.new
 
 -- Данные ChangeLog
 local changelogEntries = {
+    {
+        version = "3.7.1 | Premium",
+        description = "- Исправлены ошибки:\n" ..
+                      "  - Исправлена ошибка загрузки update.ini (cannot open file) с использованием временного файла.\n" ..
+                      "  - Исправлена неработающая кнопка 'Установить обновление' в интерфейсе из-за несинхронизации update_found.\n" ..
+                      "- Улучшения:\n" ..
+                      "  - Добавлена проверка обновлений при запуске с настраиваемой опцией (autoUpdateEnabled) в меню 'Настройки'.\n" ..
+                      "  - Улучшена команда /update: добавлена индикация прогресса, до 3 повторных попыток и защита от дублирования.\n" ..
+                      "  - Оптимизирована обработка ошибок при загрузке update.ini с уведомлениями и логированием.\n" ..
+                      "  - Улучшена синхронизация интерфейса ImGui с состоянием обновлений, включая принудительную перерисовку.\n" ..
+                      "- Примечания:\n" ..
+                      "  - Рекомендуется перезапустить MoonLoader после успешного обновления.\n" ..
+                      "  - Проверьте настройки автообновления в меню для удобства."
+    },
     {
         version = "3.7 | Premium",
         description = "- Новые функции:\n" ..
@@ -57,8 +72,8 @@ local changelogEntries = {
 -- Переменные для авто-обновлений
 local update_state = false
 local update_found = false
-local script_vers = 3.7
-local script_vers_text = "3.7"
+local script_vers = 3.71
+local script_vers_text = "3.7.1"
 
 local update_url = "https://raw.githubusercontent.com/Zorahm/repflow/main/update.ini"
 local update_path = getWorkingDirectory() .. "/update.ini"
@@ -66,27 +81,62 @@ local update_path = getWorkingDirectory() .. "/update.ini"
 local script_url = "https://raw.githubusercontent.com/Zorahm/repflow/main/!RepFlow.lua"
 local script_path = thisScript().path
 
-function check_update()
-    downloadUrlToFile(update_url, update_path, function(id, status)
-        if status == dlstatus.STATUS_ENDDOWNLOADDATA then
-            local updateIni = inicfg.load(nil, update_path)
-            if updateIni and updateIni.info and updateIni.info.vers and updateIni.info.vers_text then
-                local remoteVers = tonumber(updateIni.info.vers)
-                if remoteVers and remoteVers > script_vers then
-                    sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Доступна новая версия: {32CD32}" .. updateIni.info.vers_text .. ". {FFFFFF}Введите /update.", -1)
-                    update_found = true
-                    logToFile("Найдена новая версия: " .. updateIni.info.vers_text)
+-- Функция проверки обновлений с использованием временного файла
+function check_update(callback)
+    local maxRetries = 3
+    local retryCount = 0
+    local downloadInProgress = false
+    local tempFilePath = os.tmpname() -- Используем временный файл
+
+    local function attemptDownload()
+        if downloadInProgress then return end
+        downloadInProgress = true
+
+        downloadUrlToFile(update_url, tempFilePath, function(id, status)
+            if status == dlstatus.STATUS_ENDDOWNLOADDATA then
+                local fileSize = lfs and lfs.attributes(tempFilePath, "size") or 1
+                if fileSize and fileSize > 0 then
+                    local updateIni = inicfg.load(nil, tempFilePath)
+                    if updateIni and updateIni.info and updateIni.info.vers and updateIni.info.vers_text then
+                        local remoteVers = tonumber(updateIni.info.vers)
+                        if remoteVers and remoteVers > script_vers then
+                            sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Доступна новая версия: {32CD32}" .. updateIni.info.vers_text .. ". {FFFFFF}Введите /update.", -1)
+                            update_found = true
+                            logToFile("Найдена новая версия: " .. updateIni.info.vers_text)
+                        else
+                            logToFile("Версия актуальна: " .. script_vers_text)
+                        end
+                    else
+                        logToFile("Ошибка: update.ini имеет неверную структуру или отсутствуют поля vers/vers_text")
+                        sampAddChatMessage(CONFIG.tag .. "{FF0000}Ошибка: Неверный формат файла обновлений.", -1)
+                    end
                 else
-                    logToFile("Версия актуальна: " .. script_vers_text)
+                    logToFile("Ошибка: Загружен пустой или повреждённый update.ini")
+                    sampAddChatMessage(CONFIG.tag .. "{FF0000}Ошибка: Файл обновлений пуст или повреждён.", -1)
                 end
-            else
-                logToFile("Ошибка: update.ini повреждён или пуст")
+                os.remove(tempFilePath) -- Удаляем временный файл после использования
+                downloadInProgress = false
+                if callback then callback(update_found) end
+            elseif status == dlstatus.STATUS_DOWNLOADERROR then
+                retryCount = retryCount + 1
+                if retryCount < maxRetries then
+                    logToFile("Ошибка загрузки update.ini. Повторная попытка #" .. retryCount)
+                    wait(1000)
+                    attemptDownload()
+                else
+                    logToFile("Не удалось загрузить update.ini после " .. maxRetries .. " попыток")
+                    sampAddChatMessage(CONFIG.tag .. "{FF0000}Не удалось проверить обновления после " .. maxRetries .. " попыток.", -1)
+                    os.remove(tempFilePath) -- Пробуем удалить, если файл создан
+                    downloadInProgress = false
+                    if callback then callback(false) end
+                end
+            elseif status == dlstatus.STATUS_CONNECTING or status == dlstatus.STATUS_REDIRECTING then
+                logToFile("Загрузка update.ini: " .. (status == dlstatus.STATUS_CONNECTING and "подключение" or "перенаправление"))
             end
-            os.remove(update_path)
-        elseif status == dlstatus.STATUS_DOWNLOADERROR then
-            logToFile("Ошибка проверки обновлений: download error")
-        end
-    end)
+        end)
+    end
+
+    attemptDownload()
 end
 
 -- Глобальные состояния
@@ -276,26 +326,30 @@ function main()
     if not isSampLoaded() or not isSampfuncsLoaded() then return end
     while not isSampAvailable() do wait(100) end
 
-    -- Проверяем, была ли уже инициализация
     if STATE.initialized then return end
     STATE.initialized = true
 
     sampRegisterChatCommand("arep", cmd_arep)
     sampRegisterChatCommand("update", cmd_update)
+    sampRegisterChatCommand("arepstats", cmd_arepstats)
     sampRegisterChatCommand("showinfo", showInfoWindow)
     sampRegisterChatCommand("hideinfo", showInfoWindowOff)
 
-    -- Единое сообщение при запуске
     sampAddChatMessage(CONFIG.tag .. "Скрипт {00FF00}загружен.{FFFFFF} Меню: {00FF00}/arep{FFFFFF}", -1)
     logToFile("Скрипт загружен")
 
-    -- Загружаем настройки из профиля
     loadSettingsFromProfile()
 
-    -- Проверка обновлений
+    -- Проверка обновлений при старте
     if SETTINGS.autoUpdateEnabled[0] then
-        logToFile("Проверка обновлений...")
-        check_update()
+        sampAddChatMessage(CONFIG.tag .. "Проверка обновлений при запуске...", -1)
+        logToFile("Запущена проверка обновлений при старте")
+        check_update(function(found)
+            if not found then
+                sampAddChatMessage(CONFIG.tag .. "Обновления не найдены или проверка завершена с ошибкой.", -1)
+                logToFile("Проверка обновлений завершена: обновлений нет или ошибка")
+            end
+        end)
     end
 
     local lastMoveCheck = 0
@@ -310,15 +364,20 @@ function main()
         if update_state then
             downloadUrlToFile(script_url, script_path, function(id, status)
                 if status == dlstatus.STATUS_ENDDOWNLOADDATA then
+                    STATE.updateProgress = 100
                     sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Скрипт {32CD32}успешно {FFFFFF}обновлён. Перезапустите MoonLoader.", -1)
                     logToFile("Скрипт успешно обновлён")
                     thisScript():reload()
                 elseif status == dlstatus.STATUS_DOWNLOADERROR then
+                    STATE.updateProgress = 0
                     sampAddChatMessage(CONFIG.tag .. "{FF0000}Ошибка: Не удалось скачать обновление.", -1)
                     logToFile("Ошибка при скачивании обновления")
+                    update_state = false
+                elseif status == dlstatus.STATUS_DOWNLOADINGDATA then
+                    STATE.updateProgress = (id.progress * 100)
+                    sampAddChatMessage(CONFIG.tag .. "Обновление: " .. math.floor(STATE.updateProgress) .. "%", -1)
                 end
             end)
-            break
         end
 
         if STATE.moveWidget then
@@ -541,13 +600,67 @@ function cmd_arep(arg)
 end
 
 function cmd_update(arg)
-    if update_found then
-        update_state = true
-        sampAddChatMessage(CONFIG.tag .. "Начинается обновление...", -1)
-        logToFile("Пользователь запустил обновление")
-    else
-        sampAddChatMessage(CONFIG.tag .. "{FF0000}Нет доступных обновлений для установки.", -1)
+    if update_state then
+        sampAddChatMessage(CONFIG.tag .. "{FF0000}Обновление уже выполняется. Подождите завершения.", -1)
+        return
     end
+
+    if not update_found then
+        sampAddChatMessage(CONFIG.tag .. "Проверка доступных обновлений...", -1)
+        logToFile("Пользователь инициировал проверку обновлений через /update")
+        check_update(function(found)
+            if found then
+                sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Найдена новая версия. Начинается обновление...", -1)
+                performUpdate()
+            else
+                sampAddChatMessage(CONFIG.tag .. "{FF0000}Обновлений нет или проверка завершилась с ошибкой.", -1)
+                logToFile("Обновления не найдены или ошибка проверки")
+            end
+        end)
+    else
+        sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Начинается обновление...", -1)
+        logToFile("Пользователь запустил обновление")
+        performUpdate()
+    end
+end
+
+-- Функция выполнения обновления
+function performUpdate()
+    update_state = true
+    STATE.updateProgress = 0
+    local maxRetries = 3
+    local retryCount = 0
+
+    local function attemptDownload()
+        downloadUrlToFile(script_url, script_path, function(id, status)
+            if status == dlstatus.STATUS_ENDDOWNLOADDATA then
+                STATE.updateProgress = 100
+                sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Скрипт {32CD32}успешно {FFFFFF}обновлён. Перезапустите MoonLoader.", -1)
+                logToFile("Скрипт успешно обновлён")
+                update_state = false
+                update_found = false -- Сбрасываем после успешного обновления
+                thisScript():reload()
+            elseif status == dlstatus.STATUS_DOWNLOADERROR then
+                retryCount = retryCount + 1
+                if retryCount < maxRetries then
+                    sampAddChatMessage(CONFIG.tag .. "Ошибка загрузки. Повторная попытка #" .. retryCount, -1)
+                    logToFile("Ошибка загрузки обновления, попытка #" .. retryCount)
+                    wait(1000)
+                    attemptDownload()
+                else
+                    STATE.updateProgress = 0
+                    sampAddChatMessage(CONFIG.tag .. "{FF0000}Не удалось обновить после " .. maxRetries .. " попыток.", -1)
+                    logToFile("Не удалось обновить после " .. maxRetries .. " попыток")
+                    update_state = false
+                end
+            elseif status == dlstatus.STATUS_DOWNLOADINGDATA then
+                STATE.updateProgress = (id.progress * 100)
+                sampAddChatMessage(CONFIG.tag .. "Обновление: " .. math.floor(STATE.updateProgress) .. "%", -1)
+            end
+        end)
+    end
+
+    attemptDownload()
 end
 
 -- Вкладка "Флудер"
@@ -674,10 +787,10 @@ function drawSettingsTab()
 
     -- Обновления
     imgui.PushStyleColor(imgui.Col.ChildBg, panelColor)
-    if imgui.BeginChild("UpdateOptions", imgui.ImVec2(0, 110), true) then
+    if imgui.BeginChild("UpdateOptions", imgui.ImVec2(0, 150), true) then
         imgui.Text(u8"Обновления")
         if imgui.Checkbox(u8'Автообновление при запуске', SETTINGS.autoUpdateEnabled) then
-            saveSettings() -- Сохраняем все настройки
+            saveSettings()
             sampAddChatMessage(CONFIG.tagInfo .. "Автообновление: {32CD32}" .. (SETTINGS.autoUpdateEnabled[0] and "включено" or "выключено"), -1)
         end
         imgui.SameLine()
@@ -686,10 +799,30 @@ function drawSettingsTab()
         imgui.SameLine()
         if imgui.Button(u8'Проверить') then
             sampAddChatMessage(CONFIG.tag .. "Проверка обновлений...", -1)
-            check_update()
+            logToFile("Ручная проверка обновлений инициирована")
+            check_update(function(found)
+                update_found = found -- Синхронизируем состояние
+                imgui.Process = true -- Принудительная перерисовка
+                if not found then
+                    sampAddChatMessage(CONFIG.tag .. "{FF0000}Обновления не найдены или произошла ошибка.", -1)
+                    logToFile("Проверка обновлений завершена: обновлений нет или ошибка")
+                end
+            end)
         end
         imgui.SameLine()
         imgui.ShowHelpMarker(u8"Проверяет обновления прямо сейчас.")
+        if update_state then
+            imgui.Text(u8"Прогресс обновления: " .. math.floor(STATE.updateProgress) .. "%")
+            imgui.ProgressBar(STATE.updateProgress / 100, imgui.ImVec2(-1, 15), u8"")
+        elseif update_found then
+            if imgui.Button(u8"Установить обновление") then
+                sampAddChatMessage(CONFIG.tag .. "{FFFFFF}Начинается обновление...", -1)
+                logToFile("Пользователь инициировал установку обновления")
+                cmd_update("")
+            end
+        else
+            imgui.Text(u8"Обновления не найдены.")
+        end
     end
     imgui.EndChild()
     imgui.PopStyleColor()
